@@ -124,3 +124,10 @@ if(BMU_PCAN_AVAILABLE)
     target_link_directories(BMUSimulator PRIVATE "${PCAN_SDK_DIR}/Win64")
     target_link_libraries(BMUSimulator PRIVATE PCANBasic)
 endif()
+
+# ── Copy assets to build output directory ────────────────────────────────────
+add_custom_command(TARGET BMUSimulator POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        "${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts/RobotoMono-Regular.ttf"
+        "$<TARGET_FILE_DIR:BMUSimulator>/RobotoMono-Regular.ttf"
+)

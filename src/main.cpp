@@ -96,6 +96,8 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int nCmdShow)
     io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
     io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
 
+    io.Fonts->AddFontFromFileTTF("RobotoMono-Regular.ttf", 16.0f);
+
     ImGui::StyleColorsDark();
 
     ImGui_ImplWin32_Init(hwnd);
