@@ -1,0 +1,40 @@
+{
+    "version": 3,
+    "configurePresets": [
+        {
+            "name": "windows-base",
+            "hidden": true,
+            "generator": "MinGW Makefiles",
+            "cacheVariables": {
+                "CMAKE_C_COMPILER":   "gcc",
+                "CMAKE_CXX_COMPILER": "g++"
+            }
+        },
+        {
+            "name": "windows-Debug",
+            "inherits": "windows-base",
+            "binaryDir": "${sourceDir}/build/windows/Debug",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Debug"
+            }
+        },
+        {
+            "name": "windows-Release",
+            "inherits": "windows-base",
+            "binaryDir": "${sourceDir}/build/windows/Release",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Release"
+            }
+        }
+    ],
+    "buildPresets": [
+        {
+            "name": "windows-Debug",
+            "configurePreset": "windows-Debug"
+        },
+        {
+            "name": "windows-Release",
+            "configurePreset": "windows-Release"
+        }
+    ]
+}

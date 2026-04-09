@@ -1,0 +1,223 @@
+VERSION "created by canmatrix"
+
+
+NS_ : 
+	NS_DESC_
+	CM_
+	BA_DEF_
+	BA_
+	VAL_
+	CAT_DEF_
+	CAT_
+	FILTER
+	BA_DEF_DEF_
+	EV_DATA_
+	ENVVAR_DATA_
+	SGTYPE_
+	SGTYPE_VAL_
+	BA_DEF_SGTYPE_
+	BA_SGTYPE_
+	SIG_TYPE_REF_
+	VAL_TABLE_
+	SIG_GROUP_
+	SIG_VALTYPE_
+	SIGTYPE_VALTYPE_
+	BO_TX_BU_
+	BA_DEF_REL_
+	BA_REL_
+	BA_DEF_DEF_REL_
+	BU_SG_REL_
+	BU_EV_REL_
+	BU_BO_REL_
+	SG_MUL_VAL_
+
+BS_:
+
+BU_: BMS BMU
+
+
+BO_ 3221225472 VECTOR__INDEPENDENT_SIG_MSG: 0 Vector__XXX
+ SG_ cell_0_balance_status : 0|1@1+ (1,0) [0|1] "" Vector__XXX
+
+BO_ 2365538736 cell_balancing_status_0_23: 8 Vector__XXX
+
+BO_ 2365538480 cell_balancing_commands_0_23: 8 Vector__XXX
+ SG_ cell_0_balance_command : 0|1@1+ (1,0) [0|1] "" Vector__XXX
+
+BO_ 2365534384 cell_temp_0_4: 8 Vector__XXX
+ SG_ cell_temp_4 : 48|12@1+ (0.05,-50) [-50|154.75] "" Vector__XXX
+ SG_ cell_temp_3 : 36|12@1+ (0.05,-50) [-50|154.75] "" Vector__XXX
+ SG_ cell_temp_2 : 24|12@1+ (0.05,-50) [-50|154.75] "" Vector__XXX
+ SG_ cell_temp_1 : 12|12@1+ (0.05,-50) [-50|154.75] "" Vector__XXX
+ SG_ cell_temp_0 : 0|12@1+ (0.05,-50) [-50|154.75] "" Vector__XXX
+
+BO_ 2365534640 cell_temp_5_9: 8 Vector__XXX
+ SG_ cell_temp_9 : 48|12@1+ (0.05,-50) [-50|154.75] "" Vector__XXX
+ SG_ cell_temp_8 : 36|12@1+ (0.05,-50) [-50|154.75] "" Vector__XXX
+ SG_ cell_temp_7 : 24|12@1+ (0.05,-50) [-50|154.75] "" Vector__XXX
+ SG_ cell_temp_6 : 12|12@1+ (0.05,-50) [-50|154.75] "" Vector__XXX
+ SG_ cell_temp_5 : 0|12@1+ (0.05,-50) [-50|154.75] "" Vector__XXX
+
+BO_ 2365534896 cell_temp_10_14: 8 Vector__XXX
+ SG_ cell_temp_14 : 48|12@1+ (0.05,-50) [-50|154.75] "" Vector__XXX
+ SG_ cell_temp_13 : 36|12@1+ (0.05,-50) [-50|154.75] "" Vector__XXX
+ SG_ cell_temp_12 : 24|12@1+ (0.05,-50) [-50|154.75] "" Vector__XXX
+ SG_ cell_temp_11 : 12|12@1+ (0.05,-50) [-50|154.75] "" Vector__XXX
+ SG_ cell_temp_10 : 0|12@1+ (0.05,-50) [-50|154.75] "" Vector__XXX
+
+BO_ 2365535152 cell_temp_15_19: 8 Vector__XXX
+ SG_ cell_temp_19 : 48|12@1+ (0.05,-50) [-50|154.75] "" Vector__XXX
+ SG_ cell_temp_18 : 36|12@1+ (0.05,-50) [-50|154.75] "" Vector__XXX
+ SG_ cell_temp_17 : 24|12@1+ (0.05,-50) [-50|154.75] "" Vector__XXX
+ SG_ cell_temp_16 : 12|12@1+ (0.05,-50) [-50|154.75] "" Vector__XXX
+ SG_ cell_temp_15 : 0|12@1+ (0.05,-50) [-50|154.75] "" Vector__XXX
+
+BO_ 2365535408 cell_temp_20_24: 8 Vector__XXX
+ SG_ cell_temp_24 : 48|12@1+ (0.05,-50) [-50|154.75] "" Vector__XXX
+ SG_ cell_temp_23 : 36|12@1+ (0.05,-50) [-50|154.75] "" Vector__XXX
+ SG_ cell_temp_22 : 24|12@1+ (0.05,-50) [-50|154.75] "" Vector__XXX
+ SG_ cell_temp_21 : 12|12@1+ (0.05,-50) [-50|154.75] "" Vector__XXX
+ SG_ cell_temp_20 : 0|12@1+ (0.05,-50) [-50|154.75] "" Vector__XXX
+
+BO_ 2365530288 cell_voltage_0_4: 8 Vector__XXX
+ SG_ cell_voltage_4 : 48|12@1+ (0.05,-50) [-50|154.75] "" Vector__XXX
+ SG_ cell_voltage_3 : 36|12@1+ (0.05,-50) [-50|154.75] "" Vector__XXX
+ SG_ cell_voltage_2 : 24|12@1+ (0.05,-50) [-50|154.75] "" Vector__XXX
+ SG_ cell_voltage_1 : 12|12@1+ (0.05,-50) [-50|154.75] "" Vector__XXX
+ SG_ cell_voltage_0 : 0|12@1+ (0.05,-50) [-50|154.75] "" Vector__XXX
+
+BO_ 2365530544 cell_voltage_5_9: 8 Vector__XXX
+ SG_ cell_voltage_9 : 48|12@1+ (0.05,-50) [-50|154.75] "" Vector__XXX
+ SG_ cell_voltage_8 : 36|12@1+ (0.05,-50) [-50|154.75] "" Vector__XXX
+ SG_ cell_voltage_7 : 24|12@1+ (0.05,-50) [-50|154.75] "" Vector__XXX
+ SG_ cell_voltage_6 : 12|12@1+ (0.05,-50) [-50|154.75] "" Vector__XXX
+ SG_ cell_voltage_5 : 0|12@1+ (0.05,-50) [-50|154.75] "" Vector__XXX
+
+BO_ 2365530800 cell_voltage_10_14: 8 Vector__XXX
+ SG_ cell_voltage_14 : 48|12@1+ (0.05,-50) [-50|154.75] "" Vector__XXX
+ SG_ cell_voltage_13 : 36|12@1+ (0.05,-50) [-50|154.75] "" Vector__XXX
+ SG_ cell_voltage_12 : 24|12@1+ (0.05,-50) [-50|154.75] "" Vector__XXX
+ SG_ cell_voltage_11 : 12|12@1+ (0.05,-50) [-50|154.75] "" Vector__XXX
+ SG_ cell_voltage_10 : 0|12@1+ (0.05,-50) [-50|154.75] "" Vector__XXX
+
+BO_ 2365531056 cell_voltage_15_19: 8 Vector__XXX
+ SG_ cell_voltage_19 : 48|12@1+ (0.05,-50) [-50|154.75] "" Vector__XXX
+ SG_ cell_voltage_18 : 36|12@1+ (0.05,-50) [-50|154.75] "" Vector__XXX
+ SG_ cell_voltage_17 : 24|12@1+ (0.05,-50) [-50|154.75] "" Vector__XXX
+ SG_ cell_voltage_16 : 12|12@1+ (0.05,-50) [-50|154.75] "" Vector__XXX
+ SG_ cell_voltage_15 : 0|12@1+ (0.05,-50) [-50|154.75] "" Vector__XXX
+
+BO_ 2365531312 cell_voltage_20_24: 8 Vector__XXX
+ SG_ cell_voltage_24 : 48|12@1+ (0.05,-50) [-50|154.75] "" Vector__XXX
+ SG_ cell_voltage_23 : 36|12@1+ (0.05,-50) [-50|154.75] "" Vector__XXX
+ SG_ cell_voltage_22 : 24|12@1+ (0.05,-50) [-50|154.75] "" Vector__XXX
+ SG_ cell_voltage_21 : 12|12@1+ (0.05,-50) [-50|154.75] "" Vector__XXX
+ SG_ cell_voltage_20 : 0|12@1+ (0.05,-50) [-50|154.75] "" Vector__XXX
+
+BO_ 2365526960 cell_voltage_summary: 8 BMS
+ SG_ avg_cell_voltage : 0|8@1+ (0.05,0) [0|12.75] "A"  BMU
+ SG_ min_cell_voltage_index : 24|8@1+ (1,0) [0|255] "A"  BMU
+ SG_ min_cell_voltage : 8|8@1+ (0.05,0) [0|12.75] "A"  BMU
+ SG_ max_cell_voltage_index : 32|8@1+ (1,0) [0|255] ""  BMU
+ SG_ max_cell_voltage : 16|8@1+ (0.05,0) [0|12.75] "A"  BMU
+
+BO_ 2365526704 cell_temp_summary: 8 BMS
+ SG_ min_cell_temp_index : 44|8@1+ (1,0) [0|255] "A"  BMU
+ SG_ min_cell_temp : 12|12@1+ (0.1,0) [0|409.5] "C"  BMU
+ SG_ max_cell_temp_index : 36|8@1+ (1,0) [0|255] ""  BMU
+ SG_ max_cell_temp : 24|12@1+ (0.1,0) [0|409.5] "C"  BMU
+ SG_ avg_cell_temp : 0|12@1+ (0.1,0) [0|409.5] "C"  BMU
+
+BO_ 2365526448 operational_values_2: 8 BMS
+ SG_ soh : 48|12@1+ (0.05,0) [0|204.75] ""  BMU
+ SG_ energy : 24|12@1+ (0.25,0) [0|1023.75] "Ah"  BMU
+ SG_ max_discharge_current : 0|12@1+ (0.25,0) [0|1023.75] "A"  BMU
+ SG_ max_charge_current : 12|12@1+ (0.25,0) [0|1023.75] "A"  BMU
+ SG_ capacity : 36|12@1+ (0.25,0) [0|1023.75] "Ah"  BMU
+
+BO_ 2365526192 operational_values_1: 8 BMS
+ SG_ pack_power : 48|16@1+ (0.01,0) [0|655.35] "klW"  BMU
+ SG_ soc : 36|12@1+ (0.05,0) [0|204.75] ""  BMU
+ SG_ pack_voltage_internal : 24|12@1+ (0.25,0) [0|1023.75] "V"  BMU
+ SG_ pack_voltage_external : 12|12@1+ (0.25,0) [0|1023.75] "V"  BMU
+ SG_ pack_current : 0|12@1+ (0.25,0) [0|1023.75] "A"  BMU
+
+BO_ 2365522096 system_status: 8 BMS
+ SG_ disconnect_forewarning : 44|1@1+ (1,0) [0|1] ""  BMU
+ SG_ precharge_contactor_state : 40|4@1+ (1,0) [0|15] ""  BMU
+ SG_ precharge_contactor_aux_state : 36|4@1+ (1,0) [0|15] ""  BMU
+ SG_ positive_contactor_state : 32|4@1+ (1,0) [0|15] ""  BMU
+ SG_ positive_contactor_aux_state : 28|4@1+ (1,0) [0|15] ""  BMU
+ SG_ negative_contactor_state : 24|4@1+ (1,0) [0|15] ""  BMU
+ SG_ negative_contactor_aux_state : 20|4@1+ (1,0) [0|15] ""  BMU
+ SG_ imd_test_status : 16|4@1+ (1,0) [0|15] ""  BMU
+ SG_ imd_state : 8|4@1+ (1,0) [0|15] ""  BMU
+ SG_ hvil_state : 12|4@1+ (1,0) [0|15] ""  BMU
+ SG_ hsm_state : 0|8@1+ (1,0) [0|255] ""  BMU
+
+BO_ 2365522080 system_commands: 8 BMU
+ SG_ external_bus_disconnected : 3|1@1+ (1,0) [0|1] ""  BMS
+ SG_ service_request : 2|1@1+ (1,0) [0|1] ""  BMS
+ SG_ enable_imd : 1|1@1+ (1,0) [0|1] ""  BMS
+ SG_ operation_req : 0|1@1+ (1,0) [0|1] ""  BMS
+
+
+
+CM_ BO_ 3221225472 "This is a message for not used signals, created by Vector CANdb++ DBC OLE DB Provider.";
+BA_DEF_ BO_  "GenMsgCycleTime" INT 0 65535;
+BA_DEF_ BO_  "VFrameFormat" ENUM  "StandardCAN","ExtendedCAN","reserved","J1939PG";
+BA_DEF_ SG_  "GenSigStartValue" FLOAT 0 100000000000;
+BA_DEF_  "ProtocolType" STRING ;
+BA_DEF_ BO_  "CanDootDecode" ENUM  "No","Yes";
+BA_DEF_ BO_  "CanDootDecodeBus" INT 0 6;
+BA_DEF_ BO_  "CanDootPaused" ENUM  "No","Yes";
+BA_DEF_ BO_  "CanDootSimulate" ENUM  "No","Yes";
+BA_DEF_ BO_  "CanDootSimulateBus" INT 0 6;
+BA_DEF_ BO_  "CanDootSimulateCycleTime" INT 0 50000;
+BA_DEF_ BO_  "CG_MessageInstName" STRING ;
+BA_DEF_ BO_  "CG_RX_TX" ENUM  "RX","TX","NONE";
+BA_DEF_ SG_  "CanDootGroup" ENUM  "None","g1","g2","g3","g4","g5","g6","g7","g8","g9","gA","gB","gC","gD","gE","gF";
+BA_DEF_ SG_  "CanDootHidden" ENUM  "No","Yes";
+BA_DEF_ SG_  "CanDootBroadcast" ENUM  "No","Yes";
+BA_DEF_ SG_  "CG_VarType" ENUM  "bool","uint8_t","int8_t","uint16_t","int16_t","uint32_t","int32_t","float","double";
+BA_DEF_DEF_  "GenMsgCycleTime" 0;
+BA_DEF_DEF_  "VFrameFormat" "";
+BA_DEF_DEF_  "GenSigStartValue" 0;
+BA_DEF_DEF_  "ProtocolType" "";
+BA_DEF_DEF_  "CanDootDecode" "Yes";
+BA_DEF_DEF_  "CanDootDecodeBus" 1;
+BA_DEF_DEF_  "CanDootPaused" "No";
+BA_DEF_DEF_  "CanDootSimulate" "No";
+BA_DEF_DEF_  "CanDootSimulateBus" 1;
+BA_DEF_DEF_  "CanDootSimulateCycleTime" 100;
+BA_DEF_DEF_  "CG_MessageInstName" "";
+BA_DEF_DEF_  "CG_RX_TX" "RX";
+BA_DEF_DEF_  "CanDootGroup" "None";
+BA_DEF_DEF_  "CanDootHidden" "No";
+BA_DEF_DEF_  "CanDootBroadcast" "Yes";
+BA_DEF_DEF_  "CG_VarType" "uint8_t";
+BA_ "ProtocolType" "J1939";
+BA_ "VFrameFormat" BO_ 2365538736 3;
+BA_ "VFrameFormat" BO_ 2365538480 3;
+BA_ "VFrameFormat" BO_ 2365534384 3;
+BA_ "VFrameFormat" BO_ 2365534640 3;
+BA_ "VFrameFormat" BO_ 2365534896 3;
+BA_ "VFrameFormat" BO_ 2365535152 3;
+BA_ "VFrameFormat" BO_ 2365535408 3;
+BA_ "VFrameFormat" BO_ 2365530288 3;
+BA_ "VFrameFormat" BO_ 2365530544 3;
+BA_ "VFrameFormat" BO_ 2365530800 3;
+BA_ "VFrameFormat" BO_ 2365531056 3;
+BA_ "VFrameFormat" BO_ 2365531312 3;
+BA_ "VFrameFormat" BO_ 2365526960 3;
+BA_ "VFrameFormat" BO_ 2365526704 3;
+BA_ "VFrameFormat" BO_ 2365526448 3;
+BA_ "VFrameFormat" BO_ 2365526192 3;
+BA_ "VFrameFormat" BO_ 2365522096 3;
+BA_ "VFrameFormat" BO_ 2365522080 3;
+BA_ "GenSigStartValue" SG_ 2365534384 cell_temp_4 1000;
+BA_ "GenSigStartValue" SG_ 2365534384 cell_temp_3 1000;
+BA_ "GenSigStartValue" SG_ 2365534384 cell_temp_2 1000;
+BA_ "GenSigStartValue" SG_ 2365534384 cell_temp_1 1000;
+BA_ "GenSigStartValue" SG_ 2365534384 cell_temp_0 1000;
+
