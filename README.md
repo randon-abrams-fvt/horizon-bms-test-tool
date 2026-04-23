@@ -5,7 +5,7 @@ A Windows GUI application that simulates a Battery Management Unit (BMU) for sub
 - Transmit BMU messages with per-signal configurable values
 - Receive and decode BMS messages against DBC signal definitions
 - Plot signals over time with pan/zoom
-- Visualize cell-level temperature, voltage, and balancing status *(planned)*
+- Visualize module-based cell temperature, voltage, and balancing status
 
 ---
 
@@ -28,3 +28,21 @@ horizon-bms-bmu-sim-app/
 ├── CMakeLists.txt
 └── README.md
 ```
+
+---
+
+## Current UI Highlights
+
+- `Signals` tab with sub-tabs for:
+	- `Control` (BMU command TX + BMS state RX)
+	- `Cell Temperatures`
+	- `Cell Voltages`
+	- `Cell Balancing`
+- Module-oriented grid layout:
+	- 2 thermistor values per module on the temperature page
+	- 12 cell voltages per module on the voltage page
+	- 12 cell balancing states/currents per module on the balancing page
+- Balancing indicator lights per cell:
+	- Blue = commanded to balance
+	- Green = actively balancing
+- Global `Settings` window for text scale, theme, docking, and ImGui debug windows

@@ -34,12 +34,11 @@ graph TD
 
 | Panel | Library | Description |
 |---|---|---|
-| **TX Panel** | ImGui | Lists all DBC messages the BMU would normally transmit. Each signal has an editable input field. Messages are sent at a configurable cycle rate. |
-| **RX Panel** | ImGui | Displays incoming CAN messages decoded against DBC signal definitions — shows signal name, scaled value, and unit. |
+| **Control Panel** | ImGui | BMU command TX controls with optional cyclic transmit, plus decoded BMS state display. |
 | **Plot Panel** | ImPlot | User selects signals from a list; selected signals are rendered as scrolling time-series graphs with pan, zoom, and legend. |
-| **Cell Temp Visualization** | ImDrawList | *(Planned)* Grid of cells color-coded by temperature. Hover shows a per-cell popup with detailed info. |
-| **Cell Voltage Visualization** | ImDrawList | *(Planned)* Same grid layout, color-coded by voltage. |
-| **Cell Balancing Visualization** | ImDrawList | *(Planned)* Grid showing active/inactive balancing state per cell. |
+| **Cell Temp Visualization** | ImGui Tables + ImDrawList primitives | Module-oriented tiles showing 2 thermistor values per module with summary cards. |
+| **Cell Voltage Visualization** | ImGui Tables + ImDrawList primitives | Module-oriented tiles showing 12 cell voltages per module with summary cards. |
+| **Cell Balancing Visualization** | ImGui Tables + ImDrawList primitives | Module-oriented tiles showing per-cell balancing current plus two indicators (blue command, green active). |
 
 ---
 
@@ -71,9 +70,9 @@ sequenceDiagram
 
 ---
 
-## Cell Visualization Design *(Planned)*
+## Module Visualization Design
 
-Each cell visualization panel shares the same grid layout concept:
+Each visualization page uses module-grouped cards with spacing and headers.
 
 ```mermaid
 graph LR
@@ -82,6 +81,7 @@ graph LR
     Grid -->|hover| Popup["Per-cell popup\n(index, value, unit, status)"]
 ```
 
-- Grid dimensions are configured to match the physical cell module layout.
-- Color mapping uses a configurable min/max range per visualization type.
-- The same `ImDrawList` helper will be reused across all three cell panels.
+- Module header format: `Module XX (Cells A-B)`.
+- Temperature page shows 2 thermistor tiles per module.
+- Voltage and balancing pages show 12 cell tiles per module.
+- Balancing tiles show current in the center and two top-right status lights.

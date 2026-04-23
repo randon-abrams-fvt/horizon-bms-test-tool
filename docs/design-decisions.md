@@ -27,6 +27,8 @@
 | **dbcppp** | `third_party/dbcppp` | Parses `.dbc` files — enumerates messages, signals, scaling, offset, min/max, value tables. |
 | **PCAN-Basic API** | `third_party/pcan` | CAN bus TX/RX via Peak PCAN hardware. Wrapped behind an abstract `ICanInterface` so alternative drivers can be added later. |
 
+The application currently embeds `bms_main_v1.dbc` at build time into a generated header, so startup does not depend on selecting a DBC file at runtime.
+
 ### Platform / Utility
 
 | Library | Role |
@@ -72,4 +74,5 @@ classDiagram
 
 ## Open Decisions
 
-- [ ] DBC message filtering strategy — how to distinguish BMU TX messages from BMS RX messages (transmit-only vs. receive-only node lists, or manual selection in UI).
+- [ ] Long-term strategy for very large signal sets (192+ cells) beyond current module-card pagination and scrolling.
+- [ ] Persisting user settings (theme, scale, docking, panel preferences) across sessions.
