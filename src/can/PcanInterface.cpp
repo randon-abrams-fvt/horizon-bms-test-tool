@@ -1,8 +1,62 @@
-#ifdef BMU_PCAN_AVAILABLE
-
 #include "can/PcanInterface.h"
 
+#include <cstdio>
 #include <cstring>
+
+// All 16 possible PCAN USB channel handles.
+static constexpr TPCANHandle kUsbChannels[] = {
+    PCAN_USBBUS1,
+    PCAN_USBBUS2,
+    PCAN_USBBUS3,
+    PCAN_USBBUS4,
+    PCAN_USBBUS5,
+    PCAN_USBBUS6,
+    PCAN_USBBUS7,
+    PCAN_USBBUS8,
+    PCAN_USBBUS9,
+    PCAN_USBBUS10,
+    PCAN_USBBUS11,
+    PCAN_USBBUS12,
+    PCAN_USBBUS13,
+    PCAN_USBBUS14,
+    PCAN_USBBUS15,
+    PCAN_USBBUS16,
+};
+
+std::vector<PcanDeviceInfo> PcanInterface::scanDevices()
+{
+    std::vector<PcanDeviceInfo> devices;
+
+    for (int i = 0; i < 16; ++i)
+    {
+        TPCANHandle ch = kUsbChannels[i];
+        DWORD condition = 0;
+        TPCANStatus st = CAN_GetValue(
+            ch, PCAN_CHANNEL_CONDITION, &condition, sizeof(condition));
+        if (st != PCAN_ERROR_OK)
+            continue;
+        if (!(condition & PCAN_CHANNEL_AVAILABLE) &&
+            !(condition & PCAN_CHANNEL_OCCUPIED))
+            continue;
+
+        // Try to read the device number for a friendlier label
+        DWORD devNum = 0;
+        CAN_GetValue(ch, PCAN_DEVICE_ID, &devNum, sizeof(devNum));
+
+        char label[64];
+        std::snprintf(
+            label,
+            sizeof(label),
+            "PCAN-USB %d  (0x%02X, dev %lu)",
+            i + 1,
+            static_cast<unsigned>(ch),
+            static_cast<unsigned long>(devNum));
+
+        devices.push_back({ch, label});
+    }
+
+    return devices;
+}
 
 PcanInterface::~PcanInterface()
 {
@@ -114,5 +168,3 @@ TPCANBaudrate PcanInterface::mapBaudrate(uint32_t bps)
         return PCAN_BAUD_500K;
     }
 }
-
-#endif // BMU_PCAN_AVAILABLE

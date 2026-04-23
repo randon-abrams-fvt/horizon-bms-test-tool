@@ -13,6 +13,7 @@ set(PCAN_SDK_DIR "" CACHE PATH "Path to PCAN-Basic SDK root (must contain Includ
 set(IMGUI_DIR ${CMAKE_CURRENT_SOURCE_DIR}/third_party/imgui)
 add_library(imgui STATIC
     ${IMGUI_DIR}/imgui.cpp
+    ${IMGUI_DIR}/imgui_demo.cpp
     ${IMGUI_DIR}/imgui_draw.cpp
     ${IMGUI_DIR}/imgui_tables.cpp
     ${IMGUI_DIR}/imgui_widgets.cpp
@@ -72,17 +73,35 @@ set_property(TARGET dbcppp PROPERTY INTERFACE_INCLUDE_DIRECTORIES
 )
 
 # ── PCAN-Basic availability check ────────────────────────────────────────────
-set(BMU_PCAN_AVAILABLE OFF)
-if(PCAN_SDK_DIR)
-    if(EXISTS "${PCAN_SDK_DIR}/Include/PCANBasic.h")
-        set(BMU_PCAN_AVAILABLE ON)
-        message(STATUS "PCAN-Basic SDK found: ${PCAN_SDK_DIR}")
-    else()
-        message(WARNING "PCAN_SDK_DIR set but PCANBasic.h not found at ${PCAN_SDK_DIR}/Include/PCANBasic.h")
+if(NOT PCAN_SDK_DIR)
+    # Auto-detect standard PEAK-System installation on Windows
+    set(_pcan_default "C:/Program Files/PEAK-System/PCAN-Basic")
+    if(EXISTS "${_pcan_default}/Include/PCANBasic.h")
+        set(PCAN_SDK_DIR "${_pcan_default}" CACHE PATH "Path to PCAN-Basic SDK root" FORCE)
     endif()
-else()
-    message(STATUS "PCAN_SDK_DIR not set — PCAN hardware disabled. Virtual interface only.")
+    unset(_pcan_default)
 endif()
+if(NOT EXISTS "${PCAN_SDK_DIR}/Include/PCANBasic.h")
+    message(FATAL_ERROR "PCAN-Basic SDK not found. Set PCAN_SDK_DIR to the root folder containing Include/PCANBasic.h.\nDownload from https://www.peak-system.com/PCAN-Basic.239.0.html")
+endif()
+message(STATUS "PCAN-Basic SDK found: ${PCAN_SDK_DIR}")
+
+# ── Embed DBC file at configure time ────────────────────────────────────────
+set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS
+    "${CMAKE_CURRENT_SOURCE_DIR}/bms_main_v1.dbc")
+file(READ "${CMAKE_CURRENT_SOURCE_DIR}/bms_main_v1.dbc" EMBEDDED_DBC_CONTENT)
+file(CONFIGURE
+    OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/generated/EmbeddedDbc.h"
+    CONTENT
+"// Auto-generated from bms_main_v1.dbc — do not edit
+#pragma once
+
+namespace EmbeddedDbc {
+static const char kContent[] = R\"DBCRAW(@EMBEDDED_DBC_CONTENT@)DBCRAW\";
+} // namespace EmbeddedDbc
+"
+    @ONLY
+    NEWLINE_STYLE LF)
 
 # ── Application ──────────────────────────────────────────────────────────────
 set(APP_SOURCES
@@ -96,13 +115,11 @@ set(APP_SOURCES
     src/ui/PlotPanel.cpp
 )
 
-if(BMU_PCAN_AVAILABLE)
-    list(APPEND APP_SOURCES src/can/PcanInterface.cpp)
-endif()
+list(APPEND APP_SOURCES src/can/PcanInterface.cpp)
 
 add_executable(BMUSimulator WIN32 ${APP_SOURCES})
 
-target_include_directories(BMUSimulator PRIVATE src)
+target_include_directories(BMUSimulator PRIVATE src "${CMAKE_CURRENT_BINARY_DIR}/generated")
 
 target_link_libraries(BMUSimulator PRIVATE
     imgui
@@ -112,22 +129,40 @@ target_link_libraries(BMUSimulator PRIVATE
     d3dcompiler
     dxgi
     dwmapi
-    comdlg32
 )
 
-target_compile_definitions(BMUSimulator PRIVATE
-    $<$<BOOL:${BMU_PCAN_AVAILABLE}>:BMU_PCAN_AVAILABLE>
-)
+target_include_directories(BMUSimulator PRIVATE "${PCAN_SDK_DIR}/Include")
 
-if(BMU_PCAN_AVAILABLE)
-    target_include_directories(BMUSimulator PRIVATE "${PCAN_SDK_DIR}/Include")
-    target_link_directories(BMUSimulator PRIVATE "${PCAN_SDK_DIR}/Win64")
-    target_link_libraries(BMUSimulator PRIVATE PCANBasic)
+# The PCAN SDK ships only MSVC .lib files which MinGW ld cannot use.
+# Generate a MinGW-compatible import library from the x64 DLL at configure time.
+find_program(GENDEF_EXECUTABLE  gendef  REQUIRED)
+find_program(DLLTOOL_EXECUTABLE dlltool REQUIRED)
+set(_pcan_dll    "${PCAN_SDK_DIR}/x64/PCANBasic.dll")
+set(_pcan_def    "${CMAKE_CURRENT_BINARY_DIR}/PCANBasic.def")
+set(_pcan_implib "${CMAKE_CURRENT_BINARY_DIR}/libPCANBasic.a")
+if(NOT EXISTS "${_pcan_implib}")
+    execute_process(
+        COMMAND "${GENDEF_EXECUTABLE}" - "${_pcan_dll}"
+        OUTPUT_FILE "${_pcan_def}"
+        RESULT_VARIABLE _gendef_ret)
+    if(_gendef_ret)
+        message(FATAL_ERROR "gendef failed for ${_pcan_dll}")
+    endif()
+    execute_process(
+        COMMAND "${DLLTOOL_EXECUTABLE}" -d "${_pcan_def}" -D "PCANBasic.dll" -l "${_pcan_implib}"
+        RESULT_VARIABLE _dlltool_ret)
+    if(_dlltool_ret)
+        message(FATAL_ERROR "dlltool failed to create ${_pcan_implib}")
+    endif()
 endif()
+target_link_libraries(BMUSimulator PRIVATE "${_pcan_implib}")
 
-# ── Copy assets to build output directory ────────────────────────────────────
+# ── Copy assets and DLL to build output directory ────────────────────────────
 add_custom_command(TARGET BMUSimulator POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_if_different
         "${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts/RobotoMono-Regular.ttf"
         "$<TARGET_FILE_DIR:BMUSimulator>/RobotoMono-Regular.ttf"
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        "${PCAN_SDK_DIR}/x64/PCANBasic.dll"
+        "$<TARGET_FILE_DIR:BMUSimulator>/PCANBasic.dll"
 )

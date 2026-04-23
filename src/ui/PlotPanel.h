@@ -33,4 +33,5 @@ class PlotPanel
     std::vector<std::string> availableSignals_;
     std::unordered_map<std::string, SignalTrace> traces_;
     char filter_[128] = {};
+    float selectorWidth_ = 220.0f;
 };

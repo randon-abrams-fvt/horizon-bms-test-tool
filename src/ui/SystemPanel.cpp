@@ -4,39 +4,14 @@
 #include "dbc/DbcModel.h"
 #include "imgui.h"
 
-#include <chrono>
 #include <cstdio>
 
 static double spNowMs()
 {
-    using namespace std::chrono;
-    static const auto kStart = steady_clock::now();
-    return duration<double, std::milli>(steady_clock::now() - kStart).count();
+    return ImGui::GetTime() * 1000.0;
 }
 
-// ── Human-readable labels for 4-bit contactor / state signals ─────────────
-static const char *contactorLabel(int v)
-{
-    switch (v)
-    {
-    case 0:
-        return "Open";
-    case 1:
-        return "Closed";
-    case 2:
-        return "Closing";
-    case 3:
-        return "Opening";
-    case 14:
-        return "Fault";
-    case 15:
-        return "Unknown";
-    default:
-        return "—";
-    }
-}
-
-// ── Public API ───────────────────────────────────────────────────────────────
+// -- Public API ---------------------------------------------------------------
 
 void SystemPanel::setDbc(const DbcModel *dbc)
 {
@@ -51,21 +26,16 @@ void SystemPanel::setCanBus(CanBus *bus)
 
 void SystemPanel::pushFrame(const DecodedFrame &frame)
 {
-    if (!statusFound_ || frame.raw.id != statusId_)
+    if (!watchIds_.count(frame.raw.id))
         return;
 
-    const double now = spNowMs();
     for (const auto &[sigName, val] : frame.signals)
     {
-        for (auto &sv : statusVals_)
+        auto it = liveVals_.find(sigName);
+        if (it != liveVals_.end())
         {
-            if (sv.name == sigName)
-            {
-                sv.value = val;
-                sv.received = true;
-                sv.timeMs = now;
-                break;
-            }
+            it->second.value = val;
+            it->second.received = true;
         }
     }
 }
@@ -83,30 +53,70 @@ void SystemPanel::render()
         }
     }
 
-    const float halfW =
-        (ImGui::GetContentRegionAvail().x - ImGui::GetStyle().ItemSpacing.x) *
-        0.5f;
+    if (ImGui::BeginTabBar("##SystemTabs"))
+    {
+        if (ImGui::BeginTabItem("Control"))
+        {
+            const ImVec2 avail = ImGui::GetContentRegionAvail();
+            const float hspac = ImGui::GetStyle().ItemSpacing.x;
+            const float halfW = (avail.x - hspac) * 0.5f;
 
-    // ── Left: Commands ───────────────────────────────────────────────────
-    ImGui::BeginChild("##CmdPane", ImVec2(halfW, 0.0f), true);
-    renderCommands();
-    ImGui::EndChild();
+            ImGui::BeginChild("##CmdCell", ImVec2(halfW, 0.0f), true);
+            renderCommands();
+            ImGui::EndChild();
 
-    ImGui::SameLine();
+            ImGui::SameLine();
 
-    // ── Right: Status ────────────────────────────────────────────────────
-    ImGui::BeginChild("##StatusPane", ImVec2(0.0f, 0.0f), true);
-    renderStatus();
-    ImGui::EndChild();
+            ImGui::BeginChild("##StatesCell", ImVec2(0.0f, 0.0f), true);
+            renderStates();
+            ImGui::EndChild();
+
+            ImGui::EndTabItem();
+        }
+
+        if (ImGui::BeginTabItem("Cell Temperatures"))
+        {
+            renderTemperatures();
+            ImGui::EndTabItem();
+        }
+
+        if (ImGui::BeginTabItem("Cell Voltages"))
+        {
+            renderVoltages();
+            ImGui::EndTabItem();
+        }
+
+        if (ImGui::BeginTabItem("Cell Balancing"))
+        {
+            renderBalancing();
+            ImGui::EndTabItem();
+        }
+
+        ImGui::EndTabBar();
+    }
 }
 
-// ── Private ──────────────────────────────────────────────────────────────────
+// -- Private ------------------------------------------------------------------
+
+// Messages (and the signals within them) that this panel monitors.
+static constexpr const char *kWatchedMessages[] = {
+    "system_status",
+    "string_sensors_1",
+    "string_ntc_temps_1_6",
+    "string_ntc_temps_7_8",
+    "cell_temp_summary",
+    "string_input_voltages_and_pwm_1",
+    "string_aux_outputs",
+    "operational_values_1",
+    "cell_voltage_summary",
+};
 
 void SystemPanel::findMessages()
 {
     cmdFound_ = false;
-    statusFound_ = false;
-    statusVals_.clear();
+    watchIds_.clear();
+    liveVals_.clear();
+
     if (!dbc_)
         return;
 
@@ -116,17 +126,35 @@ void SystemPanel::findMessages()
         {
             cmdId_ = msg.id;
             cmdFound_ = true;
+            continue;
         }
-        else if (msg.name == "system_status")
+
+        bool watch = false;
+        for (const char *name : kWatchedMessages)
         {
-            statusId_ = msg.id;
-            statusFound_ = true;
-            for (const auto &sig : msg.signals)
+            if (msg.name == name)
             {
-                StatusVal sv;
-                sv.name = sig.name;
-                statusVals_.push_back(std::move(sv));
+                watch = true;
+                break;
             }
+        }
+
+        // Watch all current/future per-cell module frames by prefix.
+        if (!watch)
+        {
+            watch = msg.name.rfind("cell_temp_", 0) == 0 ||
+                    msg.name.rfind("cell_voltage_", 0) == 0 ||
+                    msg.name.rfind("cell_balance_current_", 0) == 0 ||
+                    msg.name.rfind("cell_balancing_status_", 0) == 0 ||
+                    msg.name.rfind("cell_balancing_commands_", 0) == 0 ||
+                    msg.name.rfind("string_ntc_temps_", 0) == 0;
+        }
+
+        if (watch)
+        {
+            watchIds_.insert(msg.id);
+            for (const auto &sig : msg.signals)
+                liveVals_.emplace(sig.name, LiveVal{});
         }
     }
 }
@@ -136,7 +164,6 @@ void SystemPanel::transmit()
     if (!dbc_ || !bus_ || !cmdFound_)
         return;
 
-    // system_commands has scale=1, offset=0 for all signals so physical == raw
     std::vector<std::pair<std::string, double>> vals = {
         {"operation_req", operationReq_ ? 1.0 : 0.0},
         {"enable_imd", enableImd_ ? 1.0 : 0.0},
@@ -151,7 +178,7 @@ void SystemPanel::transmit()
 
 void SystemPanel::renderCommands()
 {
-    ImGui::TextDisabled("BMU  \u2192  BMS");
+    ImGui::TextDisabled("BMU  ->  BMS");
     ImGui::Text("system_commands");
     if (!cmdFound_)
     {
@@ -171,7 +198,6 @@ void SystemPanel::renderCommands()
     ImGui::Separator();
     ImGui::Spacing();
 
-    // Cyclic controls
     ImGui::Checkbox("Cyclic TX", &cyclicEnabled_);
     if (cyclicEnabled_)
     {
@@ -199,70 +225,594 @@ void SystemPanel::renderCommands()
     }
 }
 
-void SystemPanel::renderStatus()
+void SystemPanel::renderStates()
 {
-    ImGui::TextDisabled("BMS  \u2192  BMU");
-    ImGui::Text("system_status");
-    if (!statusFound_)
-    {
-        ImGui::TextColored(
-            ImVec4(1, 0.4f, 0.4f, 1), "Message not found in DBC");
-        return;
-    }
-    ImGui::Text("ID: 0x%08X", statusId_);
+    ImGui::TextDisabled("BMS  ->  BMU");
+    ImGui::Text("System States");
     ImGui::Separator();
 
-    constexpr ImGuiTableFlags kFlags =
-        ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg |
-        ImGuiTableFlags_SizingFixedFit | ImGuiTableFlags_ScrollY;
+    constexpr ImGuiTableFlags kTbl = ImGuiTableFlags_Borders |
+                                     ImGuiTableFlags_RowBg |
+                                     ImGuiTableFlags_SizingFixedFit;
 
-    if (!ImGui::BeginTable("##StatusTbl", 3, kFlags))
+    if (!ImGui::BeginTable("##StatesTbl", 3, kTbl))
         return;
 
-    ImGui::TableSetupScrollFreeze(0, 1);
     ImGui::TableSetupColumn("Signal", ImGuiTableColumnFlags_WidthStretch);
-    ImGui::TableSetupColumn("Value", ImGuiTableColumnFlags_WidthFixed, 60.0f);
-    ImGui::TableSetupColumn("Detail", ImGuiTableColumnFlags_WidthFixed, 80.0f);
+    ImGui::TableSetupColumn("Value", ImGuiTableColumnFlags_WidthFixed, 50.0f);
+    ImGui::TableSetupColumn("Label", ImGuiTableColumnFlags_WidthFixed, 200.0f);
     ImGui::TableHeadersRow();
 
-    for (const auto &sv : statusVals_)
-    {
+    auto getInt = [&](const char *sig, bool &ok) -> int {
+        auto it = liveVals_.find(sig);
+        ok = (it != liveVals_.end() && it->second.received);
+        return ok ? static_cast<int>(it->second.value) : 0;
+    };
+
+    auto row = [&](const char *label, const char *sig) {
+        bool ok;
+        const int iv = getInt(sig, ok);
         ImGui::TableNextRow();
         ImGui::TableSetColumnIndex(0);
-        ImGui::TextUnformatted(sv.name.c_str());
-
+        ImGui::TextUnformatted(label);
         ImGui::TableSetColumnIndex(1);
-        if (!sv.received)
+        if (!ok)
+            ImGui::TextDisabled("-");
+        else
+            ImGui::Text("%d", iv);
+        ImGui::TableSetColumnIndex(2);
+        const char *lbl = (ok && dbc_)
+                              ? dbc_->valueLabel(sig, static_cast<int64_t>(iv))
+                              : nullptr;
+        ImGui::TextDisabled("%s", lbl ? lbl : "-");
+    };
+
+    row("hsm_state", "hsm_state");
+    row("hvil_state", "hvil_state");
+    row("imd_state", "imd_state");
+    row("imd_test_status", "imd_test_status");
+
+    ImGui::TableNextRow();
+    ImGui::TableSetColumnIndex(0);
+    ImGui::TextDisabled("-- Contactors --");
+
+    row("positive_contactor", "positive_contactor_state");
+    row("positive_contactor_aux", "positive_contactor_aux_state");
+    row("negative_contactor", "negative_contactor_state");
+    row("negative_contactor_aux", "negative_contactor_aux_state");
+    row("precharge_contactor", "precharge_contactor_state");
+    row("precharge_contactor_aux", "precharge_contactor_aux_state");
+
+    ImGui::TableNextRow();
+    ImGui::TableSetColumnIndex(0);
+    ImGui::TextDisabled("-- Bus / Disconnect --");
+
+    {
+        bool ok;
+        const int iv = getInt("disconnect_forewarning", ok);
+        ImGui::TableNextRow();
+        ImGui::TableSetColumnIndex(0);
+        ImGui::TextUnformatted("disconnect_forewarning");
+        ImGui::TableSetColumnIndex(1);
+        if (!ok)
+            ImGui::TextDisabled("-");
+        else if (iv == 0)
+            ImGui::TextColored(ImVec4(0.2f, 1.0f, 0.2f, 1.0f), "0");
+        else
+            ImGui::TextColored(ImVec4(1.0f, 0.8f, 0.0f, 1.0f), "1");
+        ImGui::TableSetColumnIndex(2);
+        if (ok)
         {
-            ImGui::TextDisabled("—");
+            const char *lbl =
+                dbc_ ? dbc_->valueLabel(
+                           "disconnect_forewarning", static_cast<int64_t>(iv))
+                     : nullptr;
+            ImGui::TextDisabled("%s", lbl ? lbl : (iv ? "WARN" : "OK"));
         }
         else
         {
-            // Color: green for "safe" values, yellow/red for notable states
-            const int iv = static_cast<int>(sv.value);
-            if (sv.name == "disconnect_forewarning")
+            ImGui::TextDisabled("-");
+        }
+    }
+    row("bus_connection_state", "bus_connection_state");
+    row("manual_disconnect_state", "manual_disconnect_state");
+
+    ImGui::EndTable();
+}
+
+void SystemPanel::renderTemperatures()
+{
+    ImGui::Text("Cell Temperatures");
+    ImGui::Separator();
+
+    ImGui::TextDisabled("Summary");
+
+    auto drawSummaryCard = [&](const char *id,
+                               const char *title,
+                               const char *sig,
+                               const char *idxSig = nullptr) {
+        const ImVec2 cardSize(220.0f, 82.0f);
+        ImGui::BeginChild(id, cardSize, true);
+
+        ImGui::TextDisabled("%s", title);
+        ImGui::Separator();
+
+        auto itV = liveVals_.find(sig);
+        const bool hasVal = (itV != liveVals_.end() && itV->second.received);
+
+        if (!hasVal)
+        {
+            ImGui::TextDisabled("N/A");
+        }
+        else if (idxSig)
+        {
+            auto itI = liveVals_.find(idxSig);
+            const bool hasIdx =
+                (itI != liveVals_.end() && itI->second.received);
+            if (hasIdx)
+                ImGui::Text(
+                    "%.1f degC  [Cell %d]",
+                    itV->second.value,
+                    static_cast<int>(itI->second.value));
+            else
+                ImGui::Text("%.1f degC", itV->second.value);
+        }
+        else
+        {
+            ImGui::Text("%.1f degC", itV->second.value);
+        }
+
+        ImGui::EndChild();
+    };
+
+    drawSummaryCard("##AvgTempCard", "Average", "avg_cell_temp");
+    ImGui::SameLine();
+    drawSummaryCard(
+        "##MaxTempCard", "Maximum", "max_cell_temp", "max_cell_temp_index");
+    ImGui::SameLine();
+    drawSummaryCard(
+        "##MinTempCard", "Minimum", "min_cell_temp", "min_cell_temp_index");
+
+    ImGui::Spacing();
+    ImGui::Text("Module Thermistor Grid");
+
+    constexpr int kCellsPerModule = 12;
+    constexpr int kThermistorsPerModule = 2;
+    constexpr int kTotalModules = 16;
+    constexpr int kModuleCols = 2;
+    constexpr float kTileHeight = 48.0f;
+    constexpr float kModuleCardHeight = 100.0f;
+
+    constexpr ImGuiTableFlags kGridTbl = ImGuiTableFlags_Borders |
+                                         ImGuiTableFlags_RowBg |
+                                         ImGuiTableFlags_SizingStretchSame;
+    constexpr ImGuiTableFlags kModuleTbl = ImGuiTableFlags_SizingStretchSame;
+
+    if (!ImGui::BeginTable("##TempModuleColumns", kModuleCols, kModuleTbl))
+        return;
+
+    for (int module = 0; module < kTotalModules; ++module)
+    {
+        ImGui::TableNextColumn();
+
+        char moduleHdr[96];
+        const int firstCell = module * kCellsPerModule + 1;
+        const int lastCell = (module + 1) * kCellsPerModule;
+        std::snprintf(
+            moduleHdr,
+            sizeof(moduleHdr),
+            "Module %02d  (Cells %d-%d)",
+            module + 1,
+            firstCell,
+            lastCell);
+
+        char moduleCardId[48];
+        std::snprintf(
+            moduleCardId, sizeof(moduleCardId), "##TempModuleCard_%d", module);
+        ImGui::BeginChild(
+            moduleCardId,
+            ImVec2(0.0f, kModuleCardHeight),
+            true,
+            ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
+        ImGui::TextDisabled("%s", moduleHdr);
+        ImGui::Spacing();
+
+        char moduleTblId[48];
+        std::snprintf(
+            moduleTblId, sizeof(moduleTblId), "##TempModule_%d", module);
+        if (!ImGui::BeginTable(moduleTblId, kThermistorsPerModule, kGridTbl))
+        {
+            ImGui::EndChild();
+            continue;
+        }
+
+        for (int t = 0; t < kThermistorsPerModule; ++t)
+        {
+            ImGui::TableNextColumn();
+
+            char tileId[40];
+            std::snprintf(
+                tileId, sizeof(tileId), "##tempTile_m%d_t%d", module, t);
+            ImGui::BeginChild(tileId, ImVec2(0.0f, kTileHeight), false);
+
+            const int thermSignalIndex = module * kThermistorsPerModule + t;
+            char sig[32];
+            std::snprintf(sig, sizeof(sig), "cell_temp_%d", thermSignalIndex);
+            auto it = liveVals_.find(sig);
+            const bool ok = (it != liveVals_.end() && it->second.received);
+
+            ImGui::SetWindowFontScale(0.82f);
+            ImGui::TextDisabled(
+                "T%d (Therm %02d)", t + 1, thermSignalIndex + 1);
+            ImGui::SetWindowFontScale(1.0f);
+
+            char tempText[32];
+            if (ok)
+                std::snprintf(
+                    tempText, sizeof(tempText), "%.1f degC", it->second.value);
+            else
+                std::snprintf(tempText, sizeof(tempText), "N/A");
+
+            const ImVec2 textSize = ImGui::CalcTextSize(tempText);
+            const ImVec2 avail = ImGui::GetContentRegionAvail();
+            const float cx = (avail.x - textSize.x) * 0.5f;
+            const float cy = (avail.y - textSize.y) * 0.5f;
+            if (cx > 0.0f)
+                ImGui::SetCursorPosX(ImGui::GetCursorPosX() + cx);
+            if (cy > 0.0f)
+                ImGui::SetCursorPosY(ImGui::GetCursorPosY() + cy);
+
+            if (ok)
+                ImGui::TextUnformatted(tempText);
+            else
+                ImGui::TextDisabled("%s", tempText);
+
+            ImGui::EndChild();
+        }
+
+        ImGui::EndTable();
+        ImGui::EndChild();
+    }
+
+    ImGui::EndTable();
+}
+
+void SystemPanel::renderVoltages()
+{
+    ImGui::Text("Voltages");
+    ImGui::Separator();
+
+    ImGui::TextDisabled("Summary");
+
+    auto drawSummaryCard = [&](const char *id,
+                               const char *title,
+                               const char *sig,
+                               const char *idxSig = nullptr) {
+        const ImVec2 cardSize(220.0f, 82.0f);
+        ImGui::BeginChild(id, cardSize, true);
+
+        ImGui::TextDisabled("%s", title);
+        ImGui::Separator();
+
+        auto itV = liveVals_.find(sig);
+        const bool hasVal = (itV != liveVals_.end() && itV->second.received);
+
+        if (!hasVal)
+        {
+            ImGui::TextDisabled("N/A");
+        }
+        else if (idxSig)
+        {
+            auto itI = liveVals_.find(idxSig);
+            const bool hasIdx =
+                (itI != liveVals_.end() && itI->second.received);
+            if (hasIdx)
+                ImGui::Text(
+                    "%.2f V  [Cell %d]",
+                    itV->second.value,
+                    static_cast<int>(itI->second.value));
+            else
+                ImGui::Text("%.2f V", itV->second.value);
+        }
+        else
+        {
+            ImGui::Text("%.2f V", itV->second.value);
+        }
+
+        ImGui::EndChild();
+    };
+
+    drawSummaryCard("##AvgVoltCard", "Average", "avg_cell_voltage");
+    ImGui::SameLine();
+    drawSummaryCard(
+        "##MaxVoltCard",
+        "Maximum",
+        "max_cell_voltage",
+        "max_cell_voltage_index");
+    ImGui::SameLine();
+    drawSummaryCard(
+        "##MinVoltCard",
+        "Minimum",
+        "min_cell_voltage",
+        "min_cell_voltage_index");
+
+    ImGui::Spacing();
+    ImGui::Text("Module Voltage Grid");
+
+    constexpr int kCellsPerModule = 12;
+    constexpr int kTotalModules = 16;
+    constexpr int kModuleCols = 2;
+    constexpr int kGridCols = 6;
+    constexpr float kTileHeight = 48.0f;
+    constexpr float kModuleCardHeight = 160.0f;
+    constexpr ImGuiTableFlags kGridTbl = ImGuiTableFlags_Borders |
+                                         ImGuiTableFlags_RowBg |
+                                         ImGuiTableFlags_SizingStretchSame;
+    constexpr ImGuiTableFlags kModuleTbl = ImGuiTableFlags_SizingStretchSame;
+
+    if (!ImGui::BeginTable("##VoltModuleColumns", kModuleCols, kModuleTbl))
+        return;
+
+    for (int module = 0; module < kTotalModules; ++module)
+    {
+        ImGui::TableNextColumn();
+
+        char moduleHdr[96];
+        std::snprintf(
+            moduleHdr,
+            sizeof(moduleHdr),
+            "Module %02d  (Cells %d-%d)",
+            module + 1,
+            module * kCellsPerModule,
+            module * kCellsPerModule + (kCellsPerModule - 1));
+
+        char moduleCardId[48];
+        std::snprintf(
+            moduleCardId, sizeof(moduleCardId), "##VoltModuleCard_%d", module);
+        ImGui::BeginChild(
+            moduleCardId,
+            ImVec2(0.0f, kModuleCardHeight),
+            true,
+            ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
+        ImGui::TextDisabled("%s", moduleHdr);
+        ImGui::Spacing();
+
+        char moduleTblId[48];
+        std::snprintf(
+            moduleTblId, sizeof(moduleTblId), "##VoltModule_%d", module);
+        if (!ImGui::BeginTable(moduleTblId, kGridCols, kGridTbl))
+        {
+            ImGui::EndChild();
+            continue;
+        }
+
+        for (int c = 0; c < kCellsPerModule; ++c)
+        {
+            ImGui::TableNextColumn();
+
+            const int cell = module * kCellsPerModule + c;
+            char tileId[32];
+            std::snprintf(tileId, sizeof(tileId), "##voltTile_%d", cell);
+            ImGui::BeginChild(tileId, ImVec2(0.0f, kTileHeight), false);
+
+            char sig[32];
+            std::snprintf(sig, sizeof(sig), "cell_voltage_%d", cell);
+            auto it = liveVals_.find(sig);
+            const bool ok = (it != liveVals_.end() && it->second.received);
+
+            ImGui::SetWindowFontScale(0.82f);
+            ImGui::TextDisabled("%02d", cell);
+            ImGui::SetWindowFontScale(1.0f);
+
+            char voltText[32];
+            if (ok)
+                std::snprintf(
+                    voltText, sizeof(voltText), "%.2f V", it->second.value);
+            else
+                std::snprintf(voltText, sizeof(voltText), "N/A");
+
+            const ImVec2 textSize = ImGui::CalcTextSize(voltText);
+            const ImVec2 avail = ImGui::GetContentRegionAvail();
+            const float cx = (avail.x - textSize.x) * 0.5f;
+            const float cy = (avail.y - textSize.y) * 0.5f;
+            if (cx > 0.0f)
+                ImGui::SetCursorPosX(ImGui::GetCursorPosX() + cx);
+            if (cy > 0.0f)
+                ImGui::SetCursorPosY(ImGui::GetCursorPosY() + cy);
+
+            if (ok)
+                ImGui::TextUnformatted(voltText);
+            else
+                ImGui::TextDisabled("%s", voltText);
+
+            ImGui::EndChild();
+        }
+
+        ImGui::EndTable();
+        ImGui::EndChild();
+    }
+
+    ImGui::EndTable();
+}
+
+void SystemPanel::renderBalancing()
+{
+    ImGui::Text("Cell Balancing");
+    ImGui::Separator();
+
+    constexpr int kCellsPerModule = 12;
+    constexpr int kTotalModules = 16;
+    constexpr int kModuleCols = 2;
+
+    int activeCount = 0;
+    for (int cell = 0; cell < kTotalModules * kCellsPerModule; ++cell)
+    {
+        char statusSig[64];
+        std::snprintf(
+            statusSig, sizeof(statusSig), "cell_%d_balance_status", cell);
+        auto stIt = liveVals_.find(statusSig);
+        const bool hasStatus =
+            (stIt != liveVals_.end() && stIt->second.received);
+        if (hasStatus && stIt->second.value > 0.5)
+            ++activeCount;
+    }
+
+    ImGui::Text(
+        "Active cells: %d / %d", activeCount, kTotalModules * kCellsPerModule);
+    ImGui::Spacing();
+    ImGui::TextDisabled("Blue: command  Green: active");
+
+    ImGui::Text("Cell Balancing Grid");
+
+    constexpr ImGuiTableFlags kGridTbl = ImGuiTableFlags_Borders |
+                                         ImGuiTableFlags_RowBg |
+                                         ImGuiTableFlags_SizingStretchSame;
+    constexpr int kGridCols = 6;
+    constexpr float kTileHeight = 48.0f;
+    constexpr float kModuleCardHeight = 160.0f;
+    constexpr ImGuiTableFlags kModuleTbl = ImGuiTableFlags_SizingStretchSame;
+
+    if (!ImGui::BeginTable("##BalModuleColumns", kModuleCols, kModuleTbl))
+        return;
+
+    for (int module = 0; module < kTotalModules; ++module)
+    {
+        ImGui::TableNextColumn();
+
+        char moduleHdr[96];
+        std::snprintf(
+            moduleHdr,
+            sizeof(moduleHdr),
+            "Module %02d  (Cells %d-%d)",
+            module + 1,
+            module * kCellsPerModule,
+            module * kCellsPerModule + (kCellsPerModule - 1));
+
+        char moduleCardId[48];
+        std::snprintf(
+            moduleCardId, sizeof(moduleCardId), "##BalModuleCard_%d", module);
+        ImGui::BeginChild(
+            moduleCardId,
+            ImVec2(0.0f, kModuleCardHeight),
+            true,
+            ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
+        ImGui::TextDisabled("%s", moduleHdr);
+        ImGui::Spacing();
+
+        char moduleTblId[48];
+        std::snprintf(
+            moduleTblId, sizeof(moduleTblId), "##BalModule_%d", module);
+        if (!ImGui::BeginTable(moduleTblId, kGridCols, kGridTbl))
+        {
+            ImGui::EndChild();
+            continue;
+        }
+
+        for (int c = 0; c < kCellsPerModule; ++c)
+        {
+            ImGui::TableNextColumn();
+
+            const int cell = module * kCellsPerModule + c;
+
+            char tileId[32];
+            std::snprintf(tileId, sizeof(tileId), "##balTile_%d", cell);
+            ImGui::BeginChild(tileId, ImVec2(0.0f, kTileHeight), false);
+
+            char statusSig[64];
+            char commandSig[64];
+            char currentSig[64];
+            std::snprintf(
+                statusSig, sizeof(statusSig), "cell_%d_balance_status", cell);
+            std::snprintf(
+                commandSig,
+                sizeof(commandSig),
+                "cell_%d_balance_command",
+                cell);
+            // DBC signal uses "balnce" typo; keep exact signal name for lookup.
+            std::snprintf(
+                currentSig, sizeof(currentSig), "cell_%d_balnce_current", cell);
+
+            auto stIt = liveVals_.find(statusSig);
+            auto cmdIt = liveVals_.find(commandSig);
+            auto curIt = liveVals_.find(currentSig);
+
+            const bool hasStatus =
+                (stIt != liveVals_.end() && stIt->second.received);
+            const bool hasCommand =
+                (cmdIt != liveVals_.end() && cmdIt->second.received);
+            const bool hasCurrent =
+                (curIt != liveVals_.end() && curIt->second.received);
+            const bool commanded = hasCommand && cmdIt->second.value > 0.5;
+            const bool active = hasStatus && stIt->second.value > 0.5;
+
+            // Small command + status indicators in the top-right corner.
             {
-                if (iv == 0)
-                    ImGui::TextColored(ImVec4(0.2f, 1, 0.2f, 1), "0");
-                else
-                    ImGui::TextColored(ImVec4(1, 0.8f, 0.0f, 1), "1");
+                const ImVec2 winPos = ImGui::GetWindowPos();
+                const ImVec2 winSize = ImGui::GetWindowSize();
+                const float boxSize = 8.0f;
+                const float pad = 4.0f;
+                const float gap = 4.0f;
+
+                const ImVec2 pBlue0(
+                    winPos.x + winSize.x - (boxSize * 2.0f) - gap - pad,
+                    winPos.y + pad);
+                const ImVec2 pBlue1(pBlue0.x + boxSize, pBlue0.y + boxSize);
+                const ImVec2 pGreen0(
+                    winPos.x + winSize.x - boxSize - pad, winPos.y + pad);
+                const ImVec2 pGreen1(pGreen0.x + boxSize, pGreen0.y + boxSize);
+
+                ImU32 blueCol = IM_COL32(80, 80, 80, 255);
+                if (hasCommand)
+                    blueCol = commanded ? IM_COL32(70, 140, 255, 255)
+                                        : IM_COL32(110, 110, 110, 255);
+
+                ImU32 greenCol = IM_COL32(80, 80, 80, 255);
+                if (hasStatus)
+                    greenCol = active ? IM_COL32(45, 210, 90, 255)
+                                      : IM_COL32(110, 110, 110, 255);
+
+                ImDrawList *draw = ImGui::GetWindowDrawList();
+                draw->AddRectFilled(pBlue0, pBlue1, blueCol, 2.0f);
+                draw->AddRect(pBlue0, pBlue1, IM_COL32(30, 30, 30, 255), 2.0f);
+                draw->AddRectFilled(pGreen0, pGreen1, greenCol, 2.0f);
+                draw->AddRect(
+                    pGreen0, pGreen1, IM_COL32(30, 30, 30, 255), 2.0f);
+            }
+
+            ImGui::SetWindowFontScale(0.82f);
+            ImGui::TextDisabled("%02d", cell);
+            ImGui::SetWindowFontScale(1.0f);
+
+            char balText[48];
+            if (!hasStatus || !hasCurrent)
+            {
+                std::snprintf(balText, sizeof(balText), "N/A");
             }
             else
             {
-                ImGui::Text("%d", iv);
+                std::snprintf(
+                    balText, sizeof(balText), "%.2f A", curIt->second.value);
             }
+
+            const ImVec2 textSize = ImGui::CalcTextSize(balText);
+            const ImVec2 avail = ImGui::GetContentRegionAvail();
+            const float cx = (avail.x - textSize.x) * 0.5f;
+            const float cy = (avail.y - textSize.y) * 0.5f;
+            if (cx > 0.0f)
+                ImGui::SetCursorPosX(ImGui::GetCursorPosX() + cx);
+            if (cy > 0.0f)
+                ImGui::SetCursorPosY(ImGui::GetCursorPosY() + cy);
+
+            if (!hasStatus || !hasCurrent)
+                ImGui::TextDisabled("%s", balText);
+            else
+                ImGui::TextUnformatted(balText);
+
+            ImGui::EndChild();
         }
 
-        ImGui::TableSetColumnIndex(2);
-        if (sv.received)
-        {
-            const int iv = static_cast<int>(sv.value);
-            // Show a friendly label for contactor/state signals
-            if (sv.name.find("contactor") != std::string::npos)
-                ImGui::TextDisabled("%s", contactorLabel(iv));
-            else if (sv.name == "disconnect_forewarning")
-                ImGui::TextDisabled(iv ? "WARN" : "OK");
-        }
+        ImGui::EndTable();
+        ImGui::EndChild();
     }
 
     ImGui::EndTable();

@@ -8,6 +8,9 @@
 
 #include <memory>
 #include <string>
+#include <vector>
+
+#include "can/PcanInterface.h"
 
 /// Top-level application class.
 /// Owns the DBC model, CAN bus, and all UI panels.
@@ -23,8 +26,8 @@ class App
   private:
     void renderMenuBar();
     void renderConnectWindow();
-    void openDbcDialog();
-    void loadDbc(const std::string &path);
+    void renderSettingsWindow();
+    void applyTheme();
     void connectCan();
     void disconnectCan();
 
@@ -37,7 +40,17 @@ class App
 
     // Connection dialog state
     bool showConnectWindow_ = false;
-    int ifaceType_ = 0;      // 0 = Virtual, 1 = PCAN
-    int pcanChannel_ = 0x51; // PCAN_USBBUS1
-    int baudrateIdx_ = 1;    // index into kBaudrates[]
+    int ifaceType_ = 0;   // 0 = Virtual, 1 = PCAN
+    int baudrateIdx_ = 1; // index into kBaudrates[]
+
+    // Application settings window state
+    bool showSettingsWindow_ = false;
+    float textScale_ = 1.0f;
+    int themeIdx_ = 0; // 0 = Dark, 1 = Light, 2 = Classic
+    bool dockingEnabled_ = true;
+    bool showDemoWindow_ = false;
+    bool showMetricsWindow_ = false;
+
+    std::vector<PcanDeviceInfo> pcanDevices_;
+    int pcanDeviceIdx_ = 0;
 };

@@ -3,12 +3,15 @@
 #include "can/CanBus.h"
 
 #include <string>
+#include <unordered_map>
+#include <unordered_set>
 #include <vector>
 
 class DbcModel;
 
 /// Tab 2 — left pane: system_commands TX controls (BMU → BMS).
-///           right pane: system_status live decoded display (BMS → BMU).
+///           right pane: BMS overview split into States / Temperatures /
+///           Voltages.
 /// Renders inline into the current tab item (no Begin/End window).
 class SystemPanel
 {
@@ -22,7 +25,10 @@ class SystemPanel
     void findMessages();
     void transmit();
     void renderCommands();
-    void renderStatus();
+    void renderStates();
+    void renderTemperatures();
+    void renderVoltages();
+    void renderBalancing();
 
     const DbcModel *dbc_ = nullptr;
     CanBus *bus_ = nullptr;
@@ -40,16 +46,14 @@ class SystemPanel
     float cycleMs_ = 100.0f;
     double lastSentMs_ = 0.0;
 
-    // ── RX: system_status ─────────────────────────────────────────────────
-    uint32_t statusId_ = 0;
-    bool statusFound_ = false;
-
-    struct StatusVal
+    // ── RX: overview signals ──────────────────────────────────────────────
+    struct LiveVal
     {
-        std::string name;
         double value = 0.0;
         bool received = false;
-        double timeMs = 0.0;
     };
-    std::vector<StatusVal> statusVals_;
+
+    std::unordered_set<uint32_t> watchIds_; ///< IDs of messages we consume
+    std::unordered_map<std::string, LiveVal>
+        liveVals_; ///< keyed by signal name
 };

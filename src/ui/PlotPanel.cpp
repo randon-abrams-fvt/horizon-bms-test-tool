@@ -52,10 +52,8 @@ void PlotPanel::pushFrame(const DecodedFrame &frame)
 
 void PlotPanel::render()
 {
-    const float listWidth = 220.0f;
-
     // ── Signal selector ──────────────────────────────────────────────────
-    ImGui::BeginChild("##SigList", ImVec2(listWidth, 0.0f), true);
+    ImGui::BeginChild("##SigList", ImVec2(selectorWidth_, 0.0f), true);
     ImGui::TextDisabled("Signals");
     ImGui::SetNextItemWidth(-1.0f);
     ImGui::InputText("##filt", filter_, sizeof(filter_));
@@ -78,6 +76,21 @@ void PlotPanel::render()
         }
     }
     ImGui::EndChild();
+
+    ImGui::SameLine();
+
+    // ── Drag handle ──────────────────────────────────────────────────────
+    ImGui::InvisibleButton("##splitter", ImVec2(6.0f, -1.0f));
+    if (ImGui::IsItemActive())
+    {
+        selectorWidth_ += ImGui::GetIO().MouseDelta.x;
+        if (selectorWidth_ < 50.0f)
+            selectorWidth_ = 50.0f;
+        if (selectorWidth_ > 600.0f)
+            selectorWidth_ = 600.0f;
+    }
+    if (ImGui::IsItemHovered() || ImGui::IsItemActive())
+        ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeEW);
 
     ImGui::SameLine();
 

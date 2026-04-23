@@ -1,19 +1,24 @@
 #include <windows.h>
 
-#include <commdlg.h>
-
 #include "App.h"
+#include "EmbeddedDbc.h"
 #include "can/VirtualInterface.h"
 #include "imgui.h"
-#ifdef BMU_PCAN_AVAILABLE
-#include "can/PcanInterface.h"
-#endif
 
 static constexpr int kBaudrates[] = {1000000, 500000, 250000, 125000};
 static constexpr const char *kBaudrateLabels[] = {
     "1 Mbit/s", "500 kbit/s", "250 kbit/s", "125 kbit/s"};
 
-App::App() = default;
+App::App()
+{
+    dbc_.loadFromString(EmbeddedDbc::kContent);
+    systemPanel_.setDbc(&dbc_);
+    plotPanel_.setDbc(&dbc_);
+
+    ImGuiIO &io = ImGui::GetIO();
+    textScale_ = io.FontGlobalScale;
+    dockingEnabled_ = (io.ConfigFlags & ImGuiConfigFlags_DockingEnable) != 0;
+}
 App::~App()
 {
     disconnectCan();
@@ -60,7 +65,7 @@ void App::render()
             busMonitor_.render();
             ImGui::EndTabItem();
         }
-        if (ImGui::BeginTabItem("System Control"))
+        if (ImGui::BeginTabItem("Signals"))
         {
             systemPanel_.render();
             ImGui::EndTabItem();
@@ -77,6 +82,13 @@ void App::render()
 
     if (showConnectWindow_)
         renderConnectWindow();
+    if (showSettingsWindow_)
+        renderSettingsWindow();
+
+    if (showDemoWindow_)
+        ImGui::ShowDemoWindow(&showDemoWindow_);
+    if (showMetricsWindow_)
+        ImGui::ShowMetricsWindow(&showMetricsWindow_);
 }
 
 void App::renderMenuBar()
@@ -86,9 +98,6 @@ void App::renderMenuBar()
 
     if (ImGui::BeginMenu("File"))
     {
-        if (ImGui::MenuItem("Open DBC\u2026", "Ctrl+O"))
-            openDbcDialog();
-        ImGui::Separator();
         if (ImGui::MenuItem("Exit"))
             PostQuitMessage(0);
         ImGui::EndMenu();
@@ -98,16 +107,26 @@ void App::renderMenuBar()
     {
         const bool connected = bus_ && bus_->isOpen();
         if (!connected && ImGui::MenuItem("Connect\u2026"))
+        {
             showConnectWindow_ = true;
+            pcanDevices_ = PcanInterface::scanDevices();
+            pcanDeviceIdx_ = 0;
+        }
         if (connected && ImGui::MenuItem("Disconnect"))
             disconnectCan();
+        ImGui::EndMenu();
+    }
+
+    if (ImGui::BeginMenu("View"))
+    {
+        ImGui::MenuItem("Settings", nullptr, &showSettingsWindow_);
         ImGui::EndMenu();
     }
 
     // Right-aligned status indicators
     const char *busLabel =
         (bus_ && bus_->isOpen()) ? "[CAN connected]" : "[CAN disconnected]";
-    const char *dbcLabel = dbc_.isLoaded() ? dbc_.filePath().c_str() : "No DBC";
+    const char *dbcLabel = "bms_main_v1.dbc";
 
     float rightWidth = ImGui::CalcTextSize(busLabel).x +
                        ImGui::CalcTextSize("  ").x +
@@ -120,7 +139,7 @@ void App::renderMenuBar()
 
 void App::renderConnectWindow()
 {
-    ImGui::SetNextWindowSize(ImVec2(360.0f, 180.0f), ImGuiCond_Appearing);
+    ImGui::SetNextWindowSize(ImVec2(400.0f, 220.0f), ImGuiCond_Appearing);
     if (!ImGui::Begin(
             "CAN Connection",
             &showConnectWindow_,
@@ -135,22 +154,57 @@ void App::renderConnectWindow()
 
     if (ifaceType_ == 1)
     {
-        ImGui::InputInt(
-            "PCAN Channel (hex)",
-            &pcanChannel_,
-            0,
-            0,
-            ImGuiInputTextFlags_CharsHexadecimal);
+        if (pcanDevices_.empty())
+        {
+            ImGui::TextColored(
+                ImVec4(1, 0.4f, 0.4f, 1), "No PCAN devices found");
+            if (ImGui::SmallButton("Rescan"))
+            {
+                pcanDevices_ = PcanInterface::scanDevices();
+                pcanDeviceIdx_ = 0;
+            }
+        }
+        else
+        {
+            if (ImGui::BeginCombo(
+                    "Device", pcanDevices_[pcanDeviceIdx_].label.c_str()))
+            {
+                for (int i = 0; i < static_cast<int>(pcanDevices_.size()); ++i)
+                {
+                    bool selected = (i == pcanDeviceIdx_);
+                    if (ImGui::Selectable(
+                            pcanDevices_[i].label.c_str(), selected))
+                        pcanDeviceIdx_ = i;
+                    if (selected)
+                        ImGui::SetItemDefaultFocus();
+                }
+                ImGui::EndCombo();
+            }
+            if (ImGui::SmallButton("Rescan"))
+            {
+                pcanDevices_ = PcanInterface::scanDevices();
+                pcanDeviceIdx_ = 0;
+            }
+        }
     }
 
     ImGui::Combo("Baud rate", &baudrateIdx_, kBaudrateLabels, 4);
 
     ImGui::Spacing();
+
+    bool canConnect = true;
+    if (ifaceType_ == 1 && pcanDevices_.empty())
+        canConnect = false;
+
+    if (!canConnect)
+        ImGui::BeginDisabled();
     if (ImGui::Button("Connect", ImVec2(110.0f, 0.0f)))
     {
         connectCan();
         showConnectWindow_ = false;
     }
+    if (!canConnect)
+        ImGui::EndDisabled();
     ImGui::SameLine();
     if (ImGui::Button("Cancel", ImVec2(80.0f, 0.0f)))
         showConnectWindow_ = false;
@@ -158,35 +212,62 @@ void App::renderConnectWindow()
     ImGui::End();
 }
 
-void App::openDbcDialog()
+void App::applyTheme()
 {
-    wchar_t path[MAX_PATH] = {};
-    OPENFILENAMEW ofn = {};
-    ofn.lStructSize = sizeof(ofn);
-    ofn.lpstrFilter = L"DBC Files\0*.dbc\0All Files\0*.*\0";
-    ofn.lpstrFile = path;
-    ofn.nMaxFile = MAX_PATH;
-    ofn.Flags = OFN_FILEMUSTEXIST | OFN_PATHMUSTEXIST;
-    ofn.lpstrTitle = L"Open DBC File";
-
-    if (!GetOpenFileNameW(&ofn))
-        return;
-
-    char narrow[MAX_PATH] = {};
-    WideCharToMultiByte(
-        CP_UTF8, 0, path, -1, narrow, MAX_PATH, nullptr, nullptr);
-    loadDbc(narrow);
+    if (themeIdx_ == 1)
+        ImGui::StyleColorsLight();
+    else if (themeIdx_ == 2)
+        ImGui::StyleColorsClassic();
+    else
+        ImGui::StyleColorsDark();
 }
 
-void App::loadDbc(const std::string &path)
+void App::renderSettingsWindow()
 {
-    if (!dbc_.load(path))
+    ImGui::SetNextWindowSize(ImVec2(420.0f, 320.0f), ImGuiCond_Appearing);
+    if (!ImGui::Begin(
+            "Settings", &showSettingsWindow_, ImGuiWindowFlags_NoCollapse))
+    {
+        ImGui::End();
         return;
+    }
 
-    systemPanel_.setDbc(&dbc_);
-    plotPanel_.setDbc(&dbc_);
-    if (bus_)
-        bus_->setDbc(&dbc_);
+    ImGuiIO &io = ImGui::GetIO();
+
+    ImGui::Text("Display");
+    ImGui::Separator();
+
+    if (ImGui::SliderFloat("Text scale", &textScale_, 0.80f, 2.00f, "%.2fx"))
+        io.FontGlobalScale = textScale_;
+
+    const char *themeItems[] = {"Dark", "Light", "Classic"};
+    if (ImGui::Combo("Theme", &themeIdx_, themeItems, 3))
+        applyTheme();
+
+    if (ImGui::Checkbox("Enable docking", &dockingEnabled_))
+    {
+        if (dockingEnabled_)
+            io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
+        else
+            io.ConfigFlags &= ~ImGuiConfigFlags_DockingEnable;
+    }
+
+    ImGui::Spacing();
+    ImGui::Text("Developer");
+    ImGui::Separator();
+    ImGui::Checkbox("Show ImGui Demo window", &showDemoWindow_);
+    ImGui::Checkbox("Show ImGui Metrics window", &showMetricsWindow_);
+
+    ImGui::Spacing();
+    if (ImGui::Button("Reset display defaults"))
+    {
+        textScale_ = 1.0f;
+        io.FontGlobalScale = textScale_;
+        themeIdx_ = 0;
+        applyTheme();
+    }
+
+    ImGui::End();
 }
 
 void App::connectCan()
@@ -198,25 +279,22 @@ void App::connectCan()
     {
         iface = std::make_unique<VirtualInterface>();
     }
-#ifdef BMU_PCAN_AVAILABLE
     else
     {
         iface = std::make_unique<PcanInterface>();
     }
-#else
-    else
-    {
-        return; // PCAN not compiled in
-    }
-#endif
 
     bus_ = std::make_unique<CanBus>(std::move(iface));
     if (dbc_.isLoaded())
         bus_->setDbc(&dbc_);
     systemPanel_.setCanBus(bus_.get());
 
+    uint32_t channel = 0;
+    if (ifaceType_ == 1 && !pcanDevices_.empty())
+        channel = static_cast<uint32_t>(pcanDevices_[pcanDeviceIdx_].handle);
+
     const uint32_t baud = static_cast<uint32_t>(kBaudrates[baudrateIdx_]);
-    if (!bus_->open(static_cast<uint32_t>(pcanChannel_), baud))
+    if (!bus_->open(channel, baud))
     {
         bus_.reset();
         systemPanel_.setCanBus(nullptr);

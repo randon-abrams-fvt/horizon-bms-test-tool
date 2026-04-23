@@ -4,6 +4,7 @@
 
 #include <dbcppp/Network.h>
 
+#include <cstdint>
 #include <memory>
 #include <string>
 #include <unordered_map>
@@ -36,11 +37,9 @@ struct DMessage
 class DbcModel
 {
   public:
-    bool load(const std::string &path);
-    void unload();
+    bool loadFromString(const std::string &content);
 
     bool isLoaded() const;
-    const std::string &filePath() const;
     const std::vector<DMessage> &messages() const;
 
     /// Decode a raw CAN frame's signals. Returns false if the ID is not in the
@@ -58,11 +57,20 @@ class DbcModel
         const std::vector<std::pair<std::string, double>> &signalValues,
         CanFrame &frameOut) const;
 
+    /// Look up the human-readable label for a signal value defined in a
+    /// VAL_TABLE_ / SIG_TYPE_REF_ pair.  Returns nullptr when not found.
+    const char *valueLabel(const std::string &sigName, int64_t value) const;
+
   private:
-    std::string filePath_;
+    void buildValueLabels(const std::string &content);
     std::unique_ptr<dbcppp::INetwork> network_;
     std::vector<DMessage> messages_;
 
     /// CAN ID (bit 31 stripped) → pointer to IMessage owned by network_.
     std::unordered_map<uint32_t, const dbcppp::IMessage *> msgById_;
+
+    /// signal name → (raw value → label), populated from VAL_TABLE_ +
+    /// SIG_TYPE_REF_ and from inline VAL_ entries.
+    std::unordered_map<std::string, std::unordered_map<int64_t, std::string>>
+        sigValueLabels_;
 };

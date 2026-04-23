@@ -96,9 +96,13 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int nCmdShow)
     io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
     io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
 
-    io.Fonts->AddFontFromFileTTF("RobotoMono-Regular.ttf", 16.0f);
+    constexpr float kBaseFontSize = 20.0f;
+    constexpr float kUiScale = 1.15f;
+
+    io.Fonts->AddFontFromFileTTF("RobotoMono-Regular.ttf", kBaseFontSize);
 
     ImGui::StyleColorsDark();
+    ImGui::GetStyle().ScaleAllSizes(kUiScale);
 
     ImGui_ImplWin32_Init(hwnd);
     ImGui_ImplDX11_Init(g_pd3dDevice, g_pd3dDeviceContext);

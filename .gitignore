@@ -1,2 +1,5 @@
 # Build output
 build/
+
+# Local machine-specific CMake settings (contains paths like PCAN_SDK_DIR)
+CMakeUserPresets.json

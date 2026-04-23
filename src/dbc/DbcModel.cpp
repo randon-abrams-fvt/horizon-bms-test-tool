@@ -3,22 +3,20 @@
 #include <dbcppp/Network.h>
 
 #include <cstring>
-#include <fstream>
+#include <regex>
+#include <sstream>
 
-bool DbcModel::load(const std::string &path)
+bool DbcModel::loadFromString(const std::string &content)
 {
-    std::ifstream f(path);
-    if (!f.is_open())
-        return false;
-
-    auto net = dbcppp::INetwork::LoadDBCFromIs(f);
+    std::istringstream ss(content);
+    auto net = dbcppp::INetwork::LoadDBCFromIs(ss);
     if (!net)
         return false;
 
     network_ = std::move(net);
-    filePath_ = path;
     messages_.clear();
     msgById_.clear();
+    sigValueLabels_.clear();
 
     for (const dbcppp::IMessage &msg : network_->Messages())
     {
@@ -50,24 +48,14 @@ bool DbcModel::load(const std::string &path)
         messages_.push_back(std::move(dm));
     }
 
-    return true;
-}
+    buildValueLabels(content);
 
-void DbcModel::unload()
-{
-    network_.reset();
-    messages_.clear();
-    msgById_.clear();
-    filePath_.clear();
+    return true;
 }
 
 bool DbcModel::isLoaded() const
 {
     return network_ != nullptr;
-}
-const std::string &DbcModel::filePath() const
-{
-    return filePath_;
 }
 const std::vector<DMessage> &DbcModel::messages() const
 {
@@ -140,4 +128,76 @@ bool DbcModel::encode(
         sig.Encode(raw, frameOut.data);
     }
     return true;
+}
+
+// ── Value label lookup
+// ────────────────────────────────────────────────────────
+
+void DbcModel::buildValueLabels(const std::string &content)
+{
+    // ── Step 1: build value-table-name → {value → label} from dbcppp ─────────
+    std::unordered_map<std::string, std::unordered_map<int64_t, std::string>>
+        tableByName;
+
+    for (const dbcppp::IValueTable &vt : network_->ValueTables())
+    {
+        auto &m = tableByName[vt.Name()];
+        for (uint64_t i = 0; i < vt.ValueEncodingDescriptions_Size(); ++i)
+        {
+            const auto &ved = vt.ValueEncodingDescriptions_Get(i);
+            m[ved.Value()] = ved.Description();
+        }
+    }
+
+    // ── Step 2: inline VAL_ entries directly on signals
+    // ───────────────────────
+    for (const dbcppp::IMessage &msg : network_->Messages())
+    {
+        for (const dbcppp::ISignal &sig : msg.Signals())
+        {
+            if (sig.ValueEncodingDescriptions_Size() == 0)
+                continue;
+            auto &m = sigValueLabels_[sig.Name()];
+            for (uint64_t i = 0; i < sig.ValueEncodingDescriptions_Size(); ++i)
+            {
+                const auto &ved = sig.ValueEncodingDescriptions_Get(i);
+                m[ved.Value()] = ved.Description();
+            }
+        }
+    }
+
+    // ── Step 3: SIG_TYPE_REF_ — dbcppp doesn't parse this into structured
+    // ─────
+    //           data, so scan the raw text with a regex.
+    //           Format: SIG_TYPE_REF_ <msg_id> <signal_name> <table_name> ;
+    static const std::regex kSigTypeRef(
+        R"(SIG_TYPE_REF_\s+\d+\s+(\w+)\s+(\w+)\s*;)");
+
+    for (std::sregex_iterator it(content.begin(), content.end(), kSigTypeRef),
+         end;
+         it != end;
+         ++it)
+    {
+        const std::string &sigName = (*it)[1];
+        const std::string &tableName = (*it)[2];
+
+        auto tit = tableByName.find(tableName);
+        if (tit == tableByName.end())
+            continue;
+
+        // Only set if not already populated by an inline VAL_ entry
+        sigValueLabels_.emplace(sigName, tit->second);
+    }
+}
+
+const char *DbcModel::valueLabel(
+    const std::string &sigName, int64_t value) const
+{
+    auto sit = sigValueLabels_.find(sigName);
+    if (sit == sigValueLabels_.end())
+        return nullptr;
+    auto vit = sit->second.find(value);
+    if (vit == sit->second.end())
+        return nullptr;
+    return vit->second.c_str();
 }
