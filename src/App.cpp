@@ -53,6 +53,7 @@ void App::render()
         {
             busMonitor_.pushFrame(f);
             systemPanel_.pushFrame(f);
+            parametersPanel_.pushFrame(f);
             plotPanel_.pushFrame(f);
         }
     }
@@ -73,6 +74,11 @@ void App::render()
         if (ImGui::BeginTabItem("Plots"))
         {
             plotPanel_.render();
+            ImGui::EndTabItem();
+        }
+        if (ImGui::BeginTabItem("Parameters"))
+        {
+            parametersPanel_.render();
             ImGui::EndTabItem();
         }
         ImGui::EndTabBar();
@@ -288,6 +294,7 @@ void App::connectCan()
     if (dbc_.isLoaded())
         bus_->setDbc(&dbc_);
     systemPanel_.setCanBus(bus_.get());
+    parametersPanel_.setCanBus(bus_.get());
 
     uint32_t channel = 0;
     if (ifaceType_ == 1 && !pcanDevices_.empty())
@@ -298,6 +305,7 @@ void App::connectCan()
     {
         bus_.reset();
         systemPanel_.setCanBus(nullptr);
+        parametersPanel_.setCanBus(nullptr);
     }
 }
 
@@ -308,5 +316,6 @@ void App::disconnectCan()
         bus_->close();
         bus_.reset();
         systemPanel_.setCanBus(nullptr);
+        parametersPanel_.setCanBus(nullptr);
     }
 }

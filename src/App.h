@@ -3,6 +3,7 @@
 #include "can/CanBus.h"
 #include "dbc/DbcModel.h"
 #include "ui/BusMonitorPanel.h"
+#include "ui/ParametersPanel.h"
 #include "ui/PlotPanel.h"
 #include "ui/SystemPanel.h"
 
@@ -36,6 +37,7 @@ class App
 
     BusMonitorPanel busMonitor_;
     SystemPanel systemPanel_;
+    ParametersPanel parametersPanel_;
     PlotPanel plotPanel_;
 
     // Connection dialog state

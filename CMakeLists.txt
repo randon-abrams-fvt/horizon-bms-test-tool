@@ -112,6 +112,7 @@ set(APP_SOURCES
     src/dbc/DbcModel.cpp
     src/ui/BusMonitorPanel.cpp
     src/ui/SystemPanel.cpp
+    src/ui/ParametersPanel.cpp
     src/ui/PlotPanel.cpp
 )
 
