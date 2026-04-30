@@ -4,6 +4,8 @@
 #include "dbc/DbcModel.h"
 #include "imgui.h"
 
+#include <algorithm>
+#include <cmath>
 #include <cstdio>
 
 static double spNowMs()
@@ -57,17 +59,7 @@ void SystemPanel::render()
     {
         if (ImGui::BeginTabItem("Control"))
         {
-            const ImVec2 avail = ImGui::GetContentRegionAvail();
-            const float hspac = ImGui::GetStyle().ItemSpacing.x;
-            const float halfW = (avail.x - hspac) * 0.5f;
-
-            ImGui::BeginChild("##CmdCell", ImVec2(halfW, 0.0f), true);
-            renderCommands();
-            ImGui::EndChild();
-
-            ImGui::SameLine();
-
-            ImGui::BeginChild("##StatesCell", ImVec2(0.0f, 0.0f), true);
+            ImGui::BeginChild("##ControlGridRoot", ImVec2(0.0f, 0.0f), false);
             renderStates();
             ImGui::EndChild();
 
@@ -108,14 +100,35 @@ static constexpr const char *kWatchedMessages[] = {
     "string_input_voltages_and_pwm_1",
     "string_aux_outputs",
     "operational_values_1",
+    "operational_values_2",
     "cell_voltage_summary",
 };
+
+static constexpr const char *kControlOverviewMessages[] = {
+    "system_status",
+    "string_sensors_1",
+    "operational_values_1",
+    "operational_values_2",
+    "cell_temp_summary",
+    "cell_voltage_summary",
+};
+
+static bool isInList(const std::string &name, const char *const *list, size_t n)
+{
+    for (size_t i = 0; i < n; ++i)
+    {
+        if (name == list[i])
+            return true;
+    }
+    return false;
+}
 
 void SystemPanel::findMessages()
 {
     cmdFound_ = false;
     watchIds_.clear();
     liveVals_.clear();
+    controlMessageViews_.clear();
 
     if (!dbc_)
         return;
@@ -130,13 +143,26 @@ void SystemPanel::findMessages()
         }
 
         bool watch = false;
-        for (const char *name : kWatchedMessages)
+        watch = isInList(
+            msg.name,
+            kWatchedMessages,
+            sizeof(kWatchedMessages) / sizeof(kWatchedMessages[0]));
+
+        const bool showInControlOverview = isInList(
+            msg.name,
+            kControlOverviewMessages,
+            sizeof(kControlOverviewMessages) /
+                sizeof(kControlOverviewMessages[0]));
+
+        if (showInControlOverview)
         {
-            if (msg.name == name)
-            {
-                watch = true;
-                break;
-            }
+            MessageView mv;
+            mv.name = msg.name;
+            mv.signals.reserve(msg.signals.size());
+            for (const auto &sig : msg.signals)
+                mv.signals.push_back(sig.name);
+            controlMessageViews_.push_back(std::move(mv));
+            watch = true;
         }
 
         // Watch all current/future per-cell module frames by prefix.
@@ -189,14 +215,20 @@ void SystemPanel::renderCommands()
     ImGui::Text("ID: 0x%08X", cmdId_);
     ImGui::Separator();
 
-    ImGui::Spacing();
-    ImGui::Checkbox("operation_req", &operationReq_);
-    ImGui::Checkbox("enable_imd", &enableImd_);
-    ImGui::Checkbox("service_request", &serviceRequest_);
-    ImGui::Checkbox("external_bus_disconnected", &externalBusDisconnected_);
-    ImGui::Spacing();
+    constexpr ImGuiTableFlags kCmdTableFlags =
+        ImGuiTableFlags_SizingStretchSame | ImGuiTableFlags_BordersInnerV;
+    if (ImGui::BeginTable("##CmdVarsTable", 2, kCmdTableFlags))
+    {
+        ImGui::TableNextColumn();
+        ImGui::Checkbox("operation_req", &operationReq_);
+        ImGui::Checkbox("enable_imd", &enableImd_);
+        ImGui::TableNextColumn();
+        ImGui::Checkbox("service_request", &serviceRequest_);
+        ImGui::Checkbox("external_bus_disconnected", &externalBusDisconnected_);
+        ImGui::EndTable();
+    }
+
     ImGui::Separator();
-    ImGui::Spacing();
 
     ImGui::Checkbox("Cyclic TX", &cyclicEnabled_);
     if (cyclicEnabled_)
@@ -227,27 +259,20 @@ void SystemPanel::renderCommands()
 
 void SystemPanel::renderStates()
 {
-    ImGui::TextDisabled("BMS  ->  BMU");
-    ImGui::Text("System States");
+    updateContactorCommandState();
+
+    ImGui::Text("Control Overview");
     ImGui::Separator();
-
-    constexpr ImGuiTableFlags kTbl = ImGuiTableFlags_Borders |
-                                     ImGuiTableFlags_RowBg |
-                                     ImGuiTableFlags_SizingFixedFit;
-
-    if (!ImGui::BeginTable("##StatesTbl", 3, kTbl))
-        return;
-
-    ImGui::TableSetupColumn("Signal", ImGuiTableColumnFlags_WidthStretch);
-    ImGui::TableSetupColumn("Value", ImGuiTableColumnFlags_WidthFixed, 50.0f);
-    ImGui::TableSetupColumn("Label", ImGuiTableColumnFlags_WidthFixed, 200.0f);
-    ImGui::TableHeadersRow();
 
     auto getInt = [&](const char *sig, bool &ok) -> int {
         auto it = liveVals_.find(sig);
         ok = (it != liveVals_.end() && it->second.received);
         return ok ? static_cast<int>(it->second.value) : 0;
     };
+
+    constexpr ImGuiTableFlags kTbl = ImGuiTableFlags_Borders |
+                                     ImGuiTableFlags_RowBg |
+                                     ImGuiTableFlags_SizingFixedFit;
 
     auto row = [&](const char *label, const char *sig) {
         bool ok;
@@ -267,57 +292,352 @@ void SystemPanel::renderStates()
         ImGui::TextDisabled("%s", lbl ? lbl : "-");
     };
 
-    row("hsm_state", "hsm_state");
-    row("hvil_state", "hvil_state");
-    row("imd_state", "imd_state");
-    row("imd_test_status", "imd_test_status");
+    constexpr ImGuiTableFlags kGridTbl = ImGuiTableFlags_SizingStretchSame;
+    const float commandH = 230.0f;
+    const float contactorH = 126.0f;
+    const float topSectionH =
+        commandH + ImGui::GetStyle().ItemSpacing.y + contactorH;
 
-    ImGui::TableNextRow();
-    ImGui::TableSetColumnIndex(0);
-    ImGui::TextDisabled("-- Contactors --");
-
-    row("positive_contactor", "positive_contactor_state");
-    row("positive_contactor_aux", "positive_contactor_aux_state");
-    row("negative_contactor", "negative_contactor_state");
-    row("negative_contactor_aux", "negative_contactor_aux_state");
-    row("precharge_contactor", "precharge_contactor_state");
-    row("precharge_contactor_aux", "precharge_contactor_aux_state");
-
-    ImGui::TableNextRow();
-    ImGui::TableSetColumnIndex(0);
-    ImGui::TextDisabled("-- Bus / Disconnect --");
-
+    if (ImGui::BeginTable("##ControlOverviewGrid", 2, kGridTbl))
     {
-        bool ok;
-        const int iv = getInt("disconnect_forewarning", ok);
-        ImGui::TableNextRow();
-        ImGui::TableSetColumnIndex(0);
-        ImGui::TextUnformatted("disconnect_forewarning");
-        ImGui::TableSetColumnIndex(1);
-        if (!ok)
-            ImGui::TextDisabled("-");
-        else if (iv == 0)
-            ImGui::TextColored(ImVec4(0.2f, 1.0f, 0.2f, 1.0f), "0");
-        else
-            ImGui::TextColored(ImVec4(1.0f, 0.8f, 0.0f, 1.0f), "1");
-        ImGui::TableSetColumnIndex(2);
-        if (ok)
+        ImGui::TableNextColumn();
+        if (ImGui::BeginChild(
+                "##LeftControlStack",
+                ImVec2(0.0f, topSectionH),
+                false,
+                ImGuiWindowFlags_NoScrollbar |
+                    ImGuiWindowFlags_NoScrollWithMouse))
         {
-            const char *lbl =
-                dbc_ ? dbc_->valueLabel(
-                           "disconnect_forewarning", static_cast<int64_t>(iv))
-                     : nullptr;
-            ImGui::TextDisabled("%s", lbl ? lbl : (iv ? "WARN" : "OK"));
+            if (ImGui::BeginChild(
+                    "##CmdCard",
+                    ImVec2(0.0f, commandH),
+                    true,
+                    ImGuiWindowFlags_NoScrollbar |
+                        ImGuiWindowFlags_NoScrollWithMouse))
+                renderCommands();
+            ImGui::EndChild();
+
+            ImGui::Spacing();
+
+            if (ImGui::BeginChild(
+                    "##ContactorBox",
+                    ImVec2(0.0f, contactorH),
+                    true,
+                    ImGuiWindowFlags_NoScrollbar |
+                        ImGuiWindowFlags_NoScrollWithMouse))
+                renderContactorBox();
+            ImGui::EndChild();
         }
-        else
+        ImGui::EndChild();
+
+        ImGui::TableNextColumn();
+        if (ImGui::BeginChild(
+                "##CoreStatesBox",
+                ImVec2(0.0f, topSectionH),
+                true,
+                ImGuiWindowFlags_NoScrollbar |
+                    ImGuiWindowFlags_NoScrollWithMouse))
         {
-            ImGui::TextDisabled("-");
+            ImGui::Text("Core States");
+            ImGui::Separator();
+
+            if (ImGui::BeginTable("##CoreStatesTbl", 3, kTbl))
+            {
+                ImGui::TableSetupColumn(
+                    "Signal", ImGuiTableColumnFlags_WidthStretch);
+                ImGui::TableSetupColumn(
+                    "Value", ImGuiTableColumnFlags_WidthFixed, 52.0f);
+                ImGui::TableSetupColumn(
+                    "Label", ImGuiTableColumnFlags_WidthFixed, 180.0f);
+                ImGui::TableHeadersRow();
+
+                row("hsm_state", "hsm_state");
+                row("hvil_state", "hvil_state");
+                row("imd_state", "imd_state");
+                row("imd_test_status", "imd_test_status");
+
+                {
+                    bool ok;
+                    const int iv = getInt("disconnect_forewarning", ok);
+                    ImGui::TableNextRow();
+                    ImGui::TableSetColumnIndex(0);
+                    ImGui::TextUnformatted("disconnect_forewarning");
+                    ImGui::TableSetColumnIndex(1);
+                    if (!ok)
+                        ImGui::TextDisabled("-");
+                    else if (iv == 0)
+                        ImGui::TextColored(ImVec4(0.2f, 1.0f, 0.2f, 1.0f), "0");
+                    else
+                        ImGui::TextColored(ImVec4(1.0f, 0.8f, 0.0f, 1.0f), "1");
+                    ImGui::TableSetColumnIndex(2);
+                    if (ok)
+                    {
+                        const char *lbl = dbc_ ? dbc_->valueLabel(
+                                                     "disconnect_forewarning",
+                                                     static_cast<int64_t>(iv))
+                                               : nullptr;
+                        ImGui::TextDisabled(
+                            "%s", lbl ? lbl : (iv ? "WARN" : "OK"));
+                    }
+                    else
+                    {
+                        ImGui::TextDisabled("-");
+                    }
+                }
+
+                row("bus_connection_state", "bus_connection_state");
+                row("manual_disconnect_state", "manual_disconnect_state");
+
+                ImGui::EndTable();
+            }
         }
+        ImGui::EndChild();
+
+        ImGui::EndTable();
     }
-    row("bus_connection_state", "bus_connection_state");
-    row("manual_disconnect_state", "manual_disconnect_state");
+
+    ImGui::Spacing();
+    if (ImGui::BeginChild("##MessageValuesBox", ImVec2(0.0f, 0.0f), true))
+        renderControlMessageValues();
+    ImGui::EndChild();
+}
+
+void SystemPanel::updateContactorCommandState()
+{
+    auto it = liveVals_.find("hsm_state");
+    if (it == liveVals_.end() || !it->second.received)
+    {
+        hasContactorCommandState_ = false;
+        return;
+    }
+
+    hasContactorCommandState_ = true;
+    const int64_t hsm = static_cast<int64_t>(it->second.value);
+    const char *hsmLabel = dbc_ ? dbc_->valueLabel("hsm_state", hsm) : nullptr;
+    const std::string state = hsmLabel ? std::string(hsmLabel) : std::string();
+
+    if (state == "REGULAR_OPERATION" || state == "HV_OPERATION" ||
+        state == "HV_READY")
+    {
+        positiveContactorCommanded_ = true;
+        negativeContactorCommanded_ = true;
+        prechargeContactorCommanded_ = false;
+        return;
+    }
+
+    if (state == "TOP" || state == "INIT" || state == "STANDBY" ||
+        state == "FAULTED_STANDBY" || state == "SLEEP" || state == "SERVICE")
+    {
+        positiveContactorCommanded_ = false;
+        negativeContactorCommanded_ = false;
+        prechargeContactorCommanded_ = false;
+        return;
+    }
+
+    if (state.find("CLOSE_NEGATIVE_CONTACTOR") != std::string::npos)
+        negativeContactorCommanded_ = true;
+    if (state.find("CLOSE_PRECHARGE_CONTACTOR") != std::string::npos)
+        prechargeContactorCommanded_ = true;
+    if (state.find("CLOSE_POSITIVE_CONTACTOR") != std::string::npos)
+        positiveContactorCommanded_ = true;
+
+    if (state.find("OPEN_NEG_CON") != std::string::npos)
+        negativeContactorCommanded_ = false;
+    if (state.find("OPEN_PRECHARGE_CONTACTOR") != std::string::npos)
+        prechargeContactorCommanded_ = false;
+    if (state.find("OPEN_PRE_POS_CON") != std::string::npos)
+    {
+        prechargeContactorCommanded_ = false;
+        positiveContactorCommanded_ = false;
+    }
+}
+
+void SystemPanel::renderContactorBox()
+{
+    ImGui::Text("Contactors");
+    ImGui::SameLine();
+    ImGui::TextDisabled("(Blue: Command  Green: Aux)");
+    ImGui::Separator();
+
+    struct ContactorSpec
+    {
+        const char *title;
+        const char *stateSig;
+        const char *auxSig;
+        const bool *commanded;
+    };
+
+    const ContactorSpec specs[] = {
+        {"Positive",
+         "positive_contactor_state",
+         "positive_contactor_aux_state",
+         &positiveContactorCommanded_},
+        {"Negative",
+         "negative_contactor_state",
+         "negative_contactor_aux_state",
+         &negativeContactorCommanded_},
+        {"Precharge",
+         "precharge_contactor_state",
+         "precharge_contactor_aux_state",
+         &prechargeContactorCommanded_},
+    };
+
+    constexpr ImGuiTableFlags kTableFlags = ImGuiTableFlags_SizingStretchSame;
+    if (!ImGui::BeginTable("##ContactorTable", 3, kTableFlags))
+        return;
+
+    for (int i = 0; i < 3; ++i)
+    {
+        const ContactorSpec &s = specs[i];
+        ImGui::TableNextColumn();
+
+        char tileId[48];
+        std::snprintf(tileId, sizeof(tileId), "##contactor_%d", i);
+        ImGui::BeginChild(tileId, ImVec2(0.0f, 70.0f), true);
+
+        auto stIt = liveVals_.find(s.stateSig);
+        auto auxIt = liveVals_.find(s.auxSig);
+        const bool hasState =
+            (stIt != liveVals_.end() && stIt->second.received);
+        const bool hasAux =
+            (auxIt != liveVals_.end() && auxIt->second.received);
+
+        const bool cmdOn = hasContactorCommandState_ ? *s.commanded : false;
+        const bool auxOn = hasAux && auxIt->second.value > 0.5;
+
+        const ImVec2 winPos = ImGui::GetWindowPos();
+        const ImVec2 winSize = ImGui::GetWindowSize();
+        const float boxSize = 9.0f;
+        const float pad = 5.0f;
+        const float gap = 4.0f;
+
+        const ImVec2 pBlue0(
+            winPos.x + winSize.x - (boxSize * 2.0f) - gap - pad,
+            winPos.y + pad);
+        const ImVec2 pBlue1(pBlue0.x + boxSize, pBlue0.y + boxSize);
+        const ImVec2 pAux0(
+            winPos.x + winSize.x - boxSize - pad, winPos.y + pad);
+        const ImVec2 pAux1(pAux0.x + boxSize, pAux0.y + boxSize);
+
+        ImU32 blueCol = hasContactorCommandState_
+                            ? (cmdOn ? IM_COL32(70, 140, 255, 255)
+                                     : IM_COL32(110, 110, 110, 255))
+                            : IM_COL32(80, 80, 80, 255);
+        ImU32 auxCol = hasAux ? (auxOn ? IM_COL32(45, 210, 90, 255)
+                                       : IM_COL32(110, 110, 110, 255))
+                              : IM_COL32(80, 80, 80, 255);
+
+        ImDrawList *draw = ImGui::GetWindowDrawList();
+        draw->AddRectFilled(pBlue0, pBlue1, blueCol, 2.0f);
+        draw->AddRect(pBlue0, pBlue1, IM_COL32(30, 30, 30, 255), 2.0f);
+        draw->AddRectFilled(pAux0, pAux1, auxCol, 2.0f);
+        draw->AddRect(pAux0, pAux1, IM_COL32(30, 30, 30, 255), 2.0f);
+
+        ImGui::TextDisabled("%s", s.title);
+
+        const char *stateLabel = nullptr;
+        if (hasState && dbc_)
+            stateLabel = dbc_->valueLabel(
+                s.stateSig, static_cast<int64_t>(stIt->second.value));
+        if (!stateLabel)
+            stateLabel = hasState ? "Unknown" : "N/A";
+
+        const ImVec2 txtSize = ImGui::CalcTextSize(stateLabel);
+        const ImVec2 avail = ImGui::GetContentRegionAvail();
+        if (avail.y > txtSize.y)
+            ImGui::SetCursorPosY(
+                ImGui::GetCursorPosY() + (avail.y - txtSize.y) * 0.5f);
+        if (avail.x > txtSize.x)
+            ImGui::SetCursorPosX(
+                ImGui::GetCursorPosX() + (avail.x - txtSize.x) * 0.5f);
+        if (hasState)
+            ImGui::TextUnformatted(stateLabel);
+        else
+            ImGui::TextDisabled("%s", stateLabel);
+
+        ImGui::EndChild();
+    }
 
     ImGui::EndTable();
+}
+
+void SystemPanel::renderControlMessageValues()
+{
+    ImGui::Text("Message Values");
+    ImGui::Separator();
+
+    if (controlMessageViews_.empty())
+    {
+        ImGui::TextDisabled("No configured control messages found in DBC.");
+        return;
+    }
+
+    for (const MessageView &msg : controlMessageViews_)
+    {
+        if (!ImGui::CollapsingHeader(
+                msg.name.c_str(), ImGuiTreeNodeFlags_DefaultOpen))
+            continue;
+
+        char tableId[96];
+        std::snprintf(
+            tableId, sizeof(tableId), "##CtrlMsgTbl_%s", msg.name.c_str());
+        constexpr ImGuiTableFlags kTbl = ImGuiTableFlags_Borders |
+                                         ImGuiTableFlags_RowBg |
+                                         ImGuiTableFlags_SizingStretchProp;
+
+        if (!ImGui::BeginTable(tableId, 3, kTbl))
+            continue;
+
+        ImGui::TableSetupColumn(
+            "Signal", ImGuiTableColumnFlags_WidthStretch, 1.7f);
+        ImGui::TableSetupColumn(
+            "Value", ImGuiTableColumnFlags_WidthFixed, 90.0f);
+        ImGui::TableSetupColumn(
+            "Label", ImGuiTableColumnFlags_WidthStretch, 1.3f);
+        ImGui::TableHeadersRow();
+
+        for (const std::string &sig : msg.signals)
+        {
+            auto it = liveVals_.find(sig);
+            const bool has = (it != liveVals_.end() && it->second.received);
+
+            ImGui::TableNextRow();
+            ImGui::TableSetColumnIndex(0);
+            ImGui::TextUnformatted(sig.c_str());
+
+            ImGui::TableSetColumnIndex(1);
+            if (!has)
+            {
+                ImGui::TextDisabled("-");
+            }
+            else
+            {
+                const double v = it->second.value;
+                const double iv = static_cast<double>(static_cast<int64_t>(v));
+                if (std::fabs(v - iv) < 1e-6)
+                    ImGui::Text(
+                        "%lld",
+                        static_cast<long long>(static_cast<int64_t>(v)));
+                else
+                    ImGui::Text("%.3f", v);
+            }
+
+            ImGui::TableSetColumnIndex(2);
+            if (!has || !dbc_)
+            {
+                ImGui::TextDisabled("-");
+            }
+            else
+            {
+                const int64_t enumValue =
+                    static_cast<int64_t>(it->second.value);
+                const char *lbl = dbc_->valueLabel(sig, enumValue);
+                ImGui::TextDisabled("%s", lbl ? lbl : "-");
+            }
+        }
+
+        ImGui::EndTable();
+    }
 }
 
 void SystemPanel::renderTemperatures()

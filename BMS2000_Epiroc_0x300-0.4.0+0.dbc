@@ -1,0 +1,97 @@
+VERSION ""
+
+
+NS_ : 
+	NS_DESC_
+	CM_
+	BA_DEF_
+	BA_
+	VAL_
+	CAT_DEF_
+	CAT_
+	FILTER
+	BA_DEF_DEF_
+	EV_DATA_
+	ENVVAR_DATA_
+	SGTYPE_
+	SGTYPE_VAL_
+	BA_DEF_SGTYPE_
+	BA_SGTYPE_
+	SIG_TYPE_REF_
+	VAL_TABLE_
+	SIG_GROUP_
+	SIG_VALTYPE_
+	SIGTYPE_VALTYPE_
+	BO_TX_BU_
+	BA_DEF_REL_
+	BA_REL_
+	BA_DEF_DEF_REL_
+	BU_SG_REL_
+	BU_EV_REL_
+	BU_BO_REL_
+	SG_MUL_VAL_
+
+BS_:
+
+BU_: ServiceTool BMS2000
+
+
+BO_ 2147484644 FaultEventDebug1: 8 BMS2000
+ SG_ RecoveryClearAuthorization : 48|8@1+ (1,0) [0|0] "" Vector__XXX
+ SG_ PendingSafeStateID : 40|8@1+ (1,0) [0|0] "" Vector__XXX
+ SG_ DetectionContextSeverity : 32|8@1+ (1,0) [0|0] "" Vector__XXX
+ SG_ RecoveryBlockedByDetection : 26|1@1+ (1,0) [0|0] "" Vector__XXX
+ SG_ RecoveryRequiresReset : 25|1@1+ (1,0) [0|0] "" Vector__XXX
+ SG_ Active : 24|1@1+ (1,0) [0|0] "" Vector__XXX
+ SG_ CurrentlyDetectedSeverity : 16|8@1+ (1,0) [0|0] "" Vector__XXX
+ SG_ FaultID : 0|16@1+ (1,0) [0|0] "" Vector__XXX
+
+BO_ 2147484645 FaultEventDebug2: 8 BMS2000
+ SG_ DetectionTimestamp : 0|64@1+ (1,0) [0|0] "microseconds" Vector__XXX
+
+BO_ 2147484646 FaultEventDebug3: 8 BMS2000
+ SG_ DetectionContextIndex : 32|32@1+ (1,0) [0|0] "" Vector__XXX
+ SG_ DetectionContextValue : 0|32@1- (1,0) [0|0] "" Vector__XXX
+
+BO_ 2147484647 FaultEventDebug4: 8 BMS2000
+ SG_ ReactionTimer : 0|64@1+ (1,0) [0|0] "milliseconds" Vector__XXX
+
+BO_ 2147484648 DebugFaultRequest: 8 ServiceTool
+ SG_ DebugFaultCommandTargetID : 8|16@1+ (1,0) [0|96] "" Vector__XXX
+ SG_ DebugFaultCommandRequest : 0|8@1+ (1,0) [0|0] "" Vector__XXX
+
+BO_ 2147484649 DebugRequestedFaultStatusDetail1: 8 BMS2000
+ SG_ RecoveryClearAuthorization : 48|8@1+ (1,0) [0|0] "" Vector__XXX
+ SG_ PendingSafeStateID : 40|8@1+ (1,0) [0|0] "" Vector__XXX
+ SG_ DetectionContextSeverity : 32|8@1+ (1,0) [0|0] "" Vector__XXX
+ SG_ RecoveryBlockedByDetection : 26|1@1+ (1,0) [0|0] "" Vector__XXX
+ SG_ RecoveryRequiresReset : 25|1@1+ (1,0) [0|0] "" Vector__XXX
+ SG_ Active : 24|1@1+ (1,0) [0|0] "" Vector__XXX
+ SG_ CurrentlyDetectedSeverity : 16|8@1+ (1,0) [0|0] "" Vector__XXX
+ SG_ FaultID : 0|16@1+ (1,0) [0|0] "" Vector__XXX
+
+BO_ 2147484650 DebugRequestedFaultStatusDetail2: 8 BMS2000
+ SG_ DetectionTimestamp : 0|64@1+ (1,0) [0|0] "microseconds" Vector__XXX
+
+BO_ 2147484651 DebugRequestedFaultStatusDetail3: 8 BMS2000
+ SG_ DetectionContextIndex : 32|32@1- (1,0) [0|0] "" Vector__XXX
+ SG_ DetectionContextValue : 0|32@1- (1,0) [0|0] "" Vector__XXX
+
+BO_ 2147484652 DebugRequestedFaultStatusDetail4: 8 BMS2000
+ SG_ ReactionTimer : 0|64@1+ (1,0) [0|0] "milliseconds" Vector__XXX
+
+
+
+
+
+
+
+
+VAL_ 2147484644 FaultID 0 "CellOvervoltage" 1 "CellUndervoltage" 2 "CellOvertemp" 3 "CellUndertemp" 4 "PackOvervoltage" 5 "PackUndervoltage" 6 "PackOvercurrentCharge" 7 "PackOvercurrentDischarge" 8 "FailedThermistor" 9 "FailedVoltage" 10 "Hvil" 11 "Communication" 12 "IsolationLeakage" 13 "MasterBoard" 14 "CommandTimeout" 15 "ContactorOpen" 16 "ContactorWelded" 17 "ImminentContactorOpening" 18 "EStop" 19 "ServiceDisconnect" 20 "UnprivilegedApplication" ;
+VAL_ 2147484648 DebugFaultCommandTargetID 0 "CellOvervoltage" 1 "CellUndervoltage" 2 "CellOvertemp" 3 "CellUndertemp" 4 "PackOvervoltage" 5 "PackUndervoltage" 6 "PackOvercurrentCharge" 7 "PackOvercurrentDischarge" 8 "FailedThermistor" 9 "FailedVoltage" 10 "Hvil" 11 "Communication" 12 "IsolationLeakage" 13 "MasterBoard" 14 "CommandTimeout" 15 "ContactorOpen" 16 "ContactorWelded" 17 "ImminentContactorOpening" 18 "EStop" 19 "ServiceDisconnect" 20 "UnprivilegedApplication" ;
+VAL_ 2147484648 DebugFaultCommandRequest 0 "NoCommand" 1 "ReportDetail" ;
+VAL_ 2147484649 FaultID 0 "CellOvervoltage" 1 "CellUndervoltage" 2 "CellOvertemp" 3 "CellUndertemp" 4 "PackOvervoltage" 5 "PackUndervoltage" 6 "PackOvercurrentCharge" 7 "PackOvercurrentDischarge" 8 "FailedThermistor" 9 "FailedVoltage" 10 "Hvil" 11 "Communication" 12 "IsolationLeakage" 13 "MasterBoard" 14 "CommandTimeout" 15 "ContactorOpen" 16 "ContactorWelded" 17 "ImminentContactorOpening" 18 "EStop" 19 "ServiceDisconnect" 20 "UnprivilegedApplication" ;
+SIG_VALTYPE_ 2147484646 DetectionContextValue : 1;
+SIG_VALTYPE_ 2147484651 DetectionContextValue : 1;
+
+

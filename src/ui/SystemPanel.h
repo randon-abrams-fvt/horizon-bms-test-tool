@@ -26,9 +26,18 @@ class SystemPanel
     void transmit();
     void renderCommands();
     void renderStates();
+    void renderControlMessageValues();
+    void renderContactorBox();
+    void updateContactorCommandState();
     void renderTemperatures();
     void renderVoltages();
     void renderBalancing();
+
+    struct MessageView
+    {
+        std::string name;
+        std::vector<std::string> signals;
+    };
 
     const DbcModel *dbc_ = nullptr;
     CanBus *bus_ = nullptr;
@@ -56,4 +65,11 @@ class SystemPanel
     std::unordered_set<uint32_t> watchIds_; ///< IDs of messages we consume
     std::unordered_map<std::string, LiveVal>
         liveVals_; ///< keyed by signal name
+
+    std::vector<MessageView> controlMessageViews_;
+
+    bool positiveContactorCommanded_ = false;
+    bool negativeContactorCommanded_ = false;
+    bool prechargeContactorCommanded_ = false;
+    bool hasContactorCommandState_ = false;
 };

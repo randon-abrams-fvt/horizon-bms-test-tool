@@ -88,8 +88,10 @@ message(STATUS "PCAN-Basic SDK found: ${PCAN_SDK_DIR}")
 
 # ── Embed DBC file at configure time ────────────────────────────────────────
 set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS
-    "${CMAKE_CURRENT_SOURCE_DIR}/bms_main_v1.dbc")
+    "${CMAKE_CURRENT_SOURCE_DIR}/bms_main_v1.dbc"
+    "${CMAKE_CURRENT_SOURCE_DIR}/BMS2000_Epiroc_0x300-0.4.0+0.dbc")
 file(READ "${CMAKE_CURRENT_SOURCE_DIR}/bms_main_v1.dbc" EMBEDDED_DBC_CONTENT)
+file(READ "${CMAKE_CURRENT_SOURCE_DIR}/BMS2000_Epiroc_0x300-0.4.0+0.dbc" EMBEDDED_FAULT_DBC_CONTENT)
 file(CONFIGURE
     OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/generated/EmbeddedDbc.h"
     CONTENT
@@ -103,6 +105,19 @@ static const char kContent[] = R\"DBCRAW(@EMBEDDED_DBC_CONTENT@)DBCRAW\";
     @ONLY
     NEWLINE_STYLE LF)
 
+file(CONFIGURE
+    OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/generated/EmbeddedFaultDbc.h"
+    CONTENT
+"// Auto-generated from BMS2000_Epiroc_0x300-0.4.0+0.dbc — do not edit
+#pragma once
+
+namespace EmbeddedFaultDbc {
+static const char kContent[] = R\"DBCRAW(@EMBEDDED_FAULT_DBC_CONTENT@)DBCRAW\";
+} // namespace EmbeddedFaultDbc
+"
+    @ONLY
+    NEWLINE_STYLE LF)
+
 # ── Application ──────────────────────────────────────────────────────────────
 set(APP_SOURCES
     src/main.cpp
@@ -112,6 +127,7 @@ set(APP_SOURCES
     src/dbc/DbcModel.cpp
     src/ui/BusMonitorPanel.cpp
     src/ui/SystemPanel.cpp
+    src/ui/FaultPanel.cpp
     src/ui/ParametersPanel.cpp
     src/ui/PlotPanel.cpp
 )

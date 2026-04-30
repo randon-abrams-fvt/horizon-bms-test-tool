@@ -3,6 +3,7 @@
 #include "can/CanBus.h"
 #include "dbc/DbcModel.h"
 #include "ui/BusMonitorPanel.h"
+#include "ui/FaultPanel.h"
 #include "ui/ParametersPanel.h"
 #include "ui/PlotPanel.h"
 #include "ui/SystemPanel.h"
@@ -33,10 +34,12 @@ class App
     void disconnectCan();
 
     DbcModel dbc_;
+    DbcModel faultDbc_;
     std::unique_ptr<CanBus> bus_;
 
     BusMonitorPanel busMonitor_;
     SystemPanel systemPanel_;
+    FaultPanel faultPanel_;
     ParametersPanel parametersPanel_;
     PlotPanel plotPanel_;
 

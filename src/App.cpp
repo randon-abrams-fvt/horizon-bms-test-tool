@@ -2,6 +2,7 @@
 
 #include "App.h"
 #include "EmbeddedDbc.h"
+#include "EmbeddedFaultDbc.h"
 #include "can/VirtualInterface.h"
 #include "imgui.h"
 
@@ -12,7 +13,9 @@ static constexpr const char *kBaudrateLabels[] = {
 App::App()
 {
     dbc_.loadFromString(EmbeddedDbc::kContent);
+    faultDbc_.loadFromString(EmbeddedFaultDbc::kContent);
     systemPanel_.setDbc(&dbc_);
+    faultPanel_.setDbc(&faultDbc_);
     plotPanel_.setDbc(&dbc_);
 
     ImGuiIO &io = ImGui::GetIO();
@@ -53,6 +56,7 @@ void App::render()
         {
             busMonitor_.pushFrame(f);
             systemPanel_.pushFrame(f);
+            faultPanel_.pushFrame(f);
             parametersPanel_.pushFrame(f);
             plotPanel_.pushFrame(f);
         }
@@ -69,6 +73,11 @@ void App::render()
         if (ImGui::BeginTabItem("Signals"))
         {
             systemPanel_.render();
+            ImGui::EndTabItem();
+        }
+        if (ImGui::BeginTabItem("Faults"))
+        {
+            faultPanel_.render();
             ImGui::EndTabItem();
         }
         if (ImGui::BeginTabItem("Plots"))
@@ -294,6 +303,7 @@ void App::connectCan()
     if (dbc_.isLoaded())
         bus_->setDbc(&dbc_);
     systemPanel_.setCanBus(bus_.get());
+    faultPanel_.setCanBus(bus_.get());
     parametersPanel_.setCanBus(bus_.get());
 
     uint32_t channel = 0;
@@ -305,6 +315,7 @@ void App::connectCan()
     {
         bus_.reset();
         systemPanel_.setCanBus(nullptr);
+        faultPanel_.setCanBus(nullptr);
         parametersPanel_.setCanBus(nullptr);
     }
 }
@@ -316,6 +327,7 @@ void App::disconnectCan()
         bus_->close();
         bus_.reset();
         systemPanel_.setCanBus(nullptr);
+        faultPanel_.setCanBus(nullptr);
         parametersPanel_.setCanBus(nullptr);
     }
 }
