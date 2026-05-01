@@ -11,7 +11,7 @@
 class DbcModel;
 
 /// Fault diagnostics tab.
-/// Sends DebugFaultRequest and renders decoded fault debug/status frames.
+/// Displays fault bits from safety_app_faults_1 as an active/inactive grid.
 class FaultPanel
 {
   public:
@@ -27,27 +27,23 @@ class FaultPanel
         bool received = false;
     };
 
+    struct FaultSignal
+    {
+        std::string name;
+        LiveVal *live = nullptr;
+    };
+
     void findMessages();
-    void sendRequest();
-    void renderMessageTable(
-        const char *title, const std::vector<std::string> &messageOrder);
-    static void renderSignalValue(
-        const std::unordered_map<std::string, LiveVal> &liveVals,
-        const std::string &sigName);
+    void renderFaultGrid();
 
     const DbcModel *dbc_ = nullptr;
     CanBus *bus_ = nullptr;
 
-    uint32_t requestMsgId_ = 0;
-    bool requestFound_ = false;
+    uint32_t faultsMsgId_ = 0;
+    bool faultsMessageFound_ = false;
+    bool faultsMessageSeen_ = false;
 
     std::unordered_set<uint32_t> watchIds_;
-
-    std::unordered_map<std::string, std::vector<std::string>> messageSignals_;
-    std::unordered_map<std::string, bool> messageSeen_;
     std::unordered_map<std::string, LiveVal> liveVals_;
-
-    int selectedFaultId_ = 0;
-    int commandRequest_ = 1; // 0 = NoCommand, 1 = ReportDetail
-    std::string status_;
+    std::vector<FaultSignal> faultSignals_;
 };
