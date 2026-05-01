@@ -36,6 +36,34 @@ BS_:
 BU_: BMS BMU
 
 
+BO_ 2365579456 contactor_coil_currnets: 8 Vector__XXX
+ SG_ pre_con_coil_current : 32|16@1+ (0.001,0) [0|65.535] "A" Vector__XXX
+ SG_ pos_con_coil_current : 0|16@1+ (0.001,0) [0|65.535] "A" Vector__XXX
+ SG_ neg_con_coil_current : 16|16@1+ (0.001,0) [0|65.535] "A" Vector__XXX
+
+BO_ 2365583552 safety_app_faults_1: 8 Vector__XXX
+ SG_ f_UnprivilegedApplication : 20|1@1+ (1,0) [0|1] "" Vector__XXX
+ SG_ f_ServiceDisconnect : 19|1@1+ (1,0) [0|1] "" Vector__XXX
+ SG_ f_PackUndervoltage : 5|1@1+ (1,0) [0|1] "" Vector__XXX
+ SG_ f_PackOvervoltage : 4|1@1+ (1,0) [0|1] "" Vector__XXX
+ SG_ f_PackOvercurrentDischarge : 7|1@1+ (1,0) [0|1] "" Vector__XXX
+ SG_ f_PackOvercurrentCharge : 6|1@1+ (1,0) [0|1] "" Vector__XXX
+ SG_ f_MasterBoard : 13|1@1+ (1,0) [0|1] "" Vector__XXX
+ SG_ f_IsolationLeakage : 12|1@1+ (1,0) [0|1] "" Vector__XXX
+ SG_ f_ImminentContactorOpening : 17|1@1+ (1,0) [0|1] "" Vector__XXX
+ SG_ f_Hvil : 10|1@1+ (1,0) [0|1] "" Vector__XXX
+ SG_ f_FailedVoltage : 9|1@1+ (1,0) [0|1] "" Vector__XXX
+ SG_ f_FailedThermistor : 8|1@1+ (1,0) [0|1] "" Vector__XXX
+ SG_ f_EStop : 18|1@1+ (1,0) [0|1] "" Vector__XXX
+ SG_ f_ContactorWelded : 16|1@1+ (1,0) [0|1] "" Vector__XXX
+ SG_ f_ContactorOpen : 15|1@1+ (1,0) [0|1] "" Vector__XXX
+ SG_ f_Communication : 11|1@1+ (1,0) [0|1] "" Vector__XXX
+ SG_ f_CommandTimeout : 14|1@1+ (1,0) [0|1] "" Vector__XXX
+ SG_ f_CellUndervoltage : 1|1@1+ (1,0) [0|1] "" Vector__XXX
+ SG_ f_CellUndertemp : 3|1@1+ (1,0) [0|1] "" Vector__XXX
+ SG_ f_CellOvervoltage : 0|1@1+ (1,0) [0|1] "" Vector__XXX
+ SG_ f_CellOvertemp : 2|1@1+ (1,0) [0|1] "" Vector__XXX
+
 BO_ 2365539008 cell_balance_current_0_7: 8 Vector__XXX
  SG_ cell_0_balnce_current : 0|8@1+ (0.05,0) [0|12.75] "A" Vector__XXX
  SG_ cell_1_balnce_current : 8|8@1+ (0.05,0) [0|12.75] "A" Vector__XXX
@@ -89,19 +117,19 @@ BO_ 2365528000 string_input_voltages_and_pwm_1: 8 Vector__XXX
  SG_ backup_24v : 0|8@1+ (0.15,0) [0|38.25] "A" Vector__XXX
 
 BO_ 2365522112 system_status: 8 BMS
+ SG_ imd_active : 21|1@1+ (1,0) [0|1] "C" Vector__XXX
  SG_ hsm_state : 0|8@1+ (1,0) [0|255] ""  BMU
  SG_ hvil_state : 12|4@1+ (1,0) [0|15] ""  BMU
- SG_ imd_state : 8|4@1+ (1,0) [0|15] ""  BMU
- SG_ imd_test_status : 16|4@1+ (1,0) [0|15] ""  BMU
+ SG_ imd_test_status : 8|4@1+ (1,0) [0|15] ""  BMU
  SG_ negative_contactor_aux_state : 44|4@1+ (1,0) [0|15] ""  BMU
  SG_ negative_contactor_state : 40|4@1+ (1,0) [0|15] ""  BMU
  SG_ positive_contactor_aux_state : 52|4@1+ (1,0) [0|15] ""  BMU
  SG_ positive_contactor_state : 48|4@1+ (1,0) [0|15] ""  BMU
  SG_ precharge_contactor_aux_state : 60|4@1+ (1,0) [0|15] ""  BMU
  SG_ precharge_contactor_state : 56|4@1+ (1,0) [0|15] ""  BMU
- SG_ disconnect_forewarning : 24|1@1+ (1,0) [0|1] ""  BMU
- SG_ bus_connection_state : 20|2@1+ (1,0) [0|3] "" Vector__XXX
- SG_ manual_disconnect_state : 22|2@1+ (1,0) [0|3] "" Vector__XXX
+ SG_ disconnect_forewarning : 20|1@1+ (1,0) [0|1] ""  BMU
+ SG_ bus_connection_state : 16|2@1+ (1,0) [0|3] "" Vector__XXX
+ SG_ manual_disconnect_state : 18|2@1+ (1,0) [0|3] "" Vector__XXX
 
 BO_ 2365527744 string_sensors_1: 8 Vector__XXX
  SG_ leak_sensor_resistance : 16|16@1+ (0.0025,0) [0|163.8375] "" Vector__XXX
@@ -122,11 +150,12 @@ BO_ 2365527232 string_ntc_temps_1_6: 8 Vector__XXX
  SG_ ntc_temp_1 : 0|10@1+ (0.2,-50) [-50|154.6] "" Vector__XXX
 
 BO_ 2365528768 imd_measurements: 8 Vector__XXX
- SG_ soh : 48|12@1+ (0.05,0) [0|204.75] "" Vector__XXX
- SG_ energy : 24|12@1+ (0.25,0) [0|1023.75] "Ah" Vector__XXX
- SG_ max_discharge_current : 0|12@1+ (0.25,0) [0|1023.75] "A" Vector__XXX
- SG_ max_charge_current : 12|12@1+ (0.25,0) [0|1023.75] "A" Vector__XXX
- SG_ capacity : 36|12@1+ (0.25,0) [0|1023.75] "Ah" Vector__XXX
+ SG_ y_capacitance : 32|16@1+ (1,0) [0|65535] "A" Vector__XXX
+ SG_ resistance_valid : 56|1@1+ (1,0) [0|1] "C" Vector__XXX
+ SG_ resistance_pos_to_chassis : 16|16@1+ (100,0) [0|6553500] "A" Vector__XXX
+ SG_ resistance_neg_to_chassis : 0|16@1+ (100,0) [0|6553500] "A" Vector__XXX
+ SG_ isolation_leak_location : 48|8@1+ (0.005,0) [0|1.275] "" Vector__XXX
+ SG_ capacitance_valid : 57|1@1+ (1,0) [0|1] "C" Vector__XXX
 
 BO_ 2365538752 cell_balancing_status_0_23: 8 Vector__XXX
  SG_ cell_0_balance_status : 0|1@1+ (1,0) [0|1] "" Vector__XXX
@@ -265,7 +294,7 @@ BO_ 2365526720 cell_temp_summary: 8 BMS
  SG_ avg_cell_temp : 0|12@1+ (0.1,0) [0|409.5] "C"  BMU
 
 BO_ 2365526464 operational_values_2: 8 BMS
- SG_ soh : 48|12@1+ (0.05,0) [0|204.75] ""  BMU
+ SG_ soh : 48|12@1+ (0.025,0) [0|102.375] ""  BMU
  SG_ energy : 24|12@1+ (0.25,0) [0|1023.75] "Ah"  BMU
  SG_ max_discharge_current : 0|12@1+ (0.25,0) [0|1023.75] "A"  BMU
  SG_ max_charge_current : 12|12@1+ (0.25,0) [0|1023.75] "A"  BMU
@@ -273,7 +302,7 @@ BO_ 2365526464 operational_values_2: 8 BMS
 
 BO_ 2365526208 operational_values_1: 8 BMS
  SG_ pack_power : 48|16@1+ (0.01,0) [0|655.35] "klW"  BMU
- SG_ soc : 36|12@1+ (0.05,0) [0|204.75] ""  BMU
+ SG_ soc : 36|12@1+ (0.025,0) [0|102.375] ""  BMU
  SG_ pack_voltage_internal : 24|12@1+ (0.25,0) [0|1023.75] "V"  BMU
  SG_ pack_voltage_external : 12|12@1+ (0.25,0) [0|1023.75] "V"  BMU
  SG_ pack_current : 0|12@1+ (0.25,0) [0|1023.75] "A"  BMU
@@ -319,109 +348,111 @@ BA_DEF_DEF_  "CanDootHidden" "No";
 BA_DEF_DEF_  "CanDootBroadcast" "Yes";
 BA_DEF_DEF_  "CG_VarType" "uint8_t";
 BA_ "ProtocolType" "J1939";
+BA_ "VFrameFormat" BO_ 2365579456 3;
+BA_ "VFrameFormat" BO_ 2365583552 3;
 BA_ "VFrameFormat" BO_ 2365539008 3;
 BA_ "VFrameFormat" BO_ 2365539520 3;
 BA_ "VFrameFormat" BO_ 2365539264 3;
 BA_ "VFrameFormat" BO_ 2365528512 3;
 BA_ "VFrameFormat" BO_ 2365528256 3;
 BA_ "VFrameFormat" BO_ 2365528000 3;
-BA_ "CanDootDecode" BO_ 2365522112 1;
-BA_ "CanDootDecodeBus" BO_ 2365522112 1;
-BA_ "CanDootSimulate" BO_ 2365522112 0;
 BA_ "CanDootSimulateBus" BO_ 2365522112 1;
+BA_ "CanDootSimulate" BO_ 2365522112 0;
+BA_ "CanDootDecodeBus" BO_ 2365522112 1;
+BA_ "CanDootDecode" BO_ 2365522112 1;
 BA_ "VFrameFormat" BO_ 2365522112 3;
 BA_ "VFrameFormat" BO_ 2365527744 3;
 BA_ "VFrameFormat" BO_ 2365527488 3;
 BA_ "VFrameFormat" BO_ 2365527232 3;
-BA_ "CanDootSimulate" BO_ 2365528768 0;
-BA_ "CanDootDecode" BO_ 2365528768 1;
-BA_ "CanDootSimulateBus" BO_ 2365528768 1;
 BA_ "CanDootDecodeBus" BO_ 2365528768 1;
+BA_ "CanDootSimulateBus" BO_ 2365528768 1;
+BA_ "CanDootDecode" BO_ 2365528768 1;
+BA_ "CanDootSimulate" BO_ 2365528768 0;
 BA_ "VFrameFormat" BO_ 2365528768 3;
-BA_ "CanDootSimulate" BO_ 2365538752 0;
-BA_ "CanDootDecode" BO_ 2365538752 1;
-BA_ "CanDootSimulateBus" BO_ 2365538752 1;
 BA_ "CanDootDecodeBus" BO_ 2365538752 1;
+BA_ "CanDootSimulateBus" BO_ 2365538752 1;
+BA_ "CanDootDecode" BO_ 2365538752 1;
+BA_ "CanDootSimulate" BO_ 2365538752 0;
 BA_ "VFrameFormat" BO_ 2365538752 3;
-BA_ "CanDootSimulate" BO_ 2365538496 0;
-BA_ "CanDootDecode" BO_ 2365538496 1;
-BA_ "CanDootSimulateBus" BO_ 2365538496 1;
 BA_ "CanDootDecodeBus" BO_ 2365538496 1;
+BA_ "CanDootSimulateBus" BO_ 2365538496 1;
+BA_ "CanDootDecode" BO_ 2365538496 1;
+BA_ "CanDootSimulate" BO_ 2365538496 0;
 BA_ "VFrameFormat" BO_ 2365538496 3;
-BA_ "CanDootSimulate" BO_ 2365534400 0;
-BA_ "CanDootDecode" BO_ 2365534400 1;
-BA_ "CanDootSimulateBus" BO_ 2365534400 1;
 BA_ "CanDootDecodeBus" BO_ 2365534400 1;
+BA_ "CanDootSimulateBus" BO_ 2365534400 1;
+BA_ "CanDootDecode" BO_ 2365534400 1;
+BA_ "CanDootSimulate" BO_ 2365534400 0;
 BA_ "VFrameFormat" BO_ 2365534400 3;
-BA_ "CanDootSimulate" BO_ 2365534656 0;
-BA_ "CanDootDecode" BO_ 2365534656 1;
-BA_ "CanDootSimulateBus" BO_ 2365534656 1;
 BA_ "CanDootDecodeBus" BO_ 2365534656 1;
+BA_ "CanDootSimulateBus" BO_ 2365534656 1;
+BA_ "CanDootDecode" BO_ 2365534656 1;
+BA_ "CanDootSimulate" BO_ 2365534656 0;
 BA_ "VFrameFormat" BO_ 2365534656 3;
-BA_ "CanDootSimulate" BO_ 2365534912 0;
-BA_ "CanDootDecode" BO_ 2365534912 1;
-BA_ "CanDootSimulateBus" BO_ 2365534912 1;
 BA_ "CanDootDecodeBus" BO_ 2365534912 1;
+BA_ "CanDootSimulateBus" BO_ 2365534912 1;
+BA_ "CanDootDecode" BO_ 2365534912 1;
+BA_ "CanDootSimulate" BO_ 2365534912 0;
 BA_ "VFrameFormat" BO_ 2365534912 3;
-BA_ "CanDootSimulate" BO_ 2365535168 0;
-BA_ "CanDootDecode" BO_ 2365535168 1;
-BA_ "CanDootSimulateBus" BO_ 2365535168 1;
 BA_ "CanDootDecodeBus" BO_ 2365535168 1;
+BA_ "CanDootSimulateBus" BO_ 2365535168 1;
+BA_ "CanDootDecode" BO_ 2365535168 1;
+BA_ "CanDootSimulate" BO_ 2365535168 0;
 BA_ "VFrameFormat" BO_ 2365535168 3;
-BA_ "CanDootSimulate" BO_ 2365535424 0;
-BA_ "CanDootDecode" BO_ 2365535424 1;
-BA_ "CanDootSimulateBus" BO_ 2365535424 1;
 BA_ "CanDootDecodeBus" BO_ 2365535424 1;
+BA_ "CanDootSimulateBus" BO_ 2365535424 1;
+BA_ "CanDootDecode" BO_ 2365535424 1;
+BA_ "CanDootSimulate" BO_ 2365535424 0;
 BA_ "VFrameFormat" BO_ 2365535424 3;
-BA_ "CanDootSimulate" BO_ 2365530304 0;
-BA_ "CanDootDecode" BO_ 2365530304 1;
-BA_ "CanDootSimulateBus" BO_ 2365530304 1;
 BA_ "CanDootDecodeBus" BO_ 2365530304 1;
+BA_ "CanDootSimulateBus" BO_ 2365530304 1;
+BA_ "CanDootDecode" BO_ 2365530304 1;
+BA_ "CanDootSimulate" BO_ 2365530304 0;
 BA_ "VFrameFormat" BO_ 2365530304 3;
-BA_ "CanDootSimulate" BO_ 2365530560 0;
-BA_ "CanDootDecode" BO_ 2365530560 1;
-BA_ "CanDootSimulateBus" BO_ 2365530560 1;
 BA_ "CanDootDecodeBus" BO_ 2365530560 1;
+BA_ "CanDootSimulateBus" BO_ 2365530560 1;
+BA_ "CanDootDecode" BO_ 2365530560 1;
+BA_ "CanDootSimulate" BO_ 2365530560 0;
 BA_ "VFrameFormat" BO_ 2365530560 3;
-BA_ "CanDootSimulate" BO_ 2365530816 0;
-BA_ "CanDootDecode" BO_ 2365530816 1;
-BA_ "CanDootSimulateBus" BO_ 2365530816 1;
 BA_ "CanDootDecodeBus" BO_ 2365530816 1;
+BA_ "CanDootSimulateBus" BO_ 2365530816 1;
+BA_ "CanDootDecode" BO_ 2365530816 1;
+BA_ "CanDootSimulate" BO_ 2365530816 0;
 BA_ "VFrameFormat" BO_ 2365530816 3;
-BA_ "CanDootSimulate" BO_ 2365531072 0;
-BA_ "CanDootDecode" BO_ 2365531072 1;
-BA_ "CanDootSimulateBus" BO_ 2365531072 1;
 BA_ "CanDootDecodeBus" BO_ 2365531072 1;
+BA_ "CanDootSimulateBus" BO_ 2365531072 1;
+BA_ "CanDootDecode" BO_ 2365531072 1;
+BA_ "CanDootSimulate" BO_ 2365531072 0;
 BA_ "VFrameFormat" BO_ 2365531072 3;
-BA_ "CanDootSimulate" BO_ 2365531328 0;
-BA_ "CanDootDecode" BO_ 2365531328 1;
-BA_ "CanDootSimulateBus" BO_ 2365531328 1;
 BA_ "CanDootDecodeBus" BO_ 2365531328 1;
+BA_ "CanDootSimulateBus" BO_ 2365531328 1;
+BA_ "CanDootDecode" BO_ 2365531328 1;
+BA_ "CanDootSimulate" BO_ 2365531328 0;
 BA_ "VFrameFormat" BO_ 2365531328 3;
-BA_ "CanDootSimulate" BO_ 2365526976 0;
-BA_ "CanDootDecode" BO_ 2365526976 1;
-BA_ "CanDootSimulateBus" BO_ 2365526976 1;
 BA_ "CanDootDecodeBus" BO_ 2365526976 1;
+BA_ "CanDootSimulateBus" BO_ 2365526976 1;
+BA_ "CanDootDecode" BO_ 2365526976 1;
+BA_ "CanDootSimulate" BO_ 2365526976 0;
 BA_ "VFrameFormat" BO_ 2365526976 3;
-BA_ "CanDootSimulate" BO_ 2365526720 0;
-BA_ "CanDootDecode" BO_ 2365526720 1;
-BA_ "CanDootSimulateBus" BO_ 2365526720 1;
 BA_ "CanDootDecodeBus" BO_ 2365526720 1;
+BA_ "CanDootSimulateBus" BO_ 2365526720 1;
+BA_ "CanDootDecode" BO_ 2365526720 1;
+BA_ "CanDootSimulate" BO_ 2365526720 0;
 BA_ "VFrameFormat" BO_ 2365526720 3;
-BA_ "CanDootSimulate" BO_ 2365526464 0;
-BA_ "CanDootDecode" BO_ 2365526464 1;
-BA_ "CanDootSimulateBus" BO_ 2365526464 1;
 BA_ "CanDootDecodeBus" BO_ 2365526464 1;
+BA_ "CanDootSimulateBus" BO_ 2365526464 1;
+BA_ "CanDootDecode" BO_ 2365526464 1;
+BA_ "CanDootSimulate" BO_ 2365526464 0;
 BA_ "VFrameFormat" BO_ 2365526464 3;
-BA_ "CanDootSimulate" BO_ 2365526208 0;
-BA_ "CanDootDecode" BO_ 2365526208 1;
-BA_ "CanDootSimulateBus" BO_ 2365526208 1;
 BA_ "CanDootDecodeBus" BO_ 2365526208 1;
+BA_ "CanDootSimulateBus" BO_ 2365526208 1;
+BA_ "CanDootDecode" BO_ 2365526208 1;
+BA_ "CanDootSimulate" BO_ 2365526208 0;
 BA_ "VFrameFormat" BO_ 2365526208 3;
-BA_ "CanDootSimulate" BO_ 2359345312 1;
-BA_ "CanDootDecode" BO_ 2359345312 0;
-BA_ "CanDootSimulateBus" BO_ 2359345312 1;
 BA_ "CanDootDecodeBus" BO_ 2359345312 1;
+BA_ "CanDootSimulateBus" BO_ 2359345312 1;
+BA_ "CanDootDecode" BO_ 2359345312 0;
+BA_ "CanDootSimulate" BO_ 2359345312 1;
 BA_ "VFrameFormat" BO_ 2359345312 3;
 BA_ "GenSigStartValue" SG_ 2365527744 leak_sensor_resistance 0;
 BA_ "GenSigStartValue" SG_ 2365527744 humidity_sensor_temp 250;
@@ -440,10 +471,8 @@ BA_ "GenSigStartValue" SG_ 2365534400 cell_temp_3 1000;
 BA_ "GenSigStartValue" SG_ 2365534400 cell_temp_2 1000;
 BA_ "GenSigStartValue" SG_ 2365534400 cell_temp_1 1000;
 BA_ "GenSigStartValue" SG_ 2365534400 cell_temp_0 1000;
-
 VAL_ 2365522112 hsm_state 0 "TOP" 1 "REGULAR_OPERATION" 2 "INIT" 3 "IMD_TEST" 4 "STANDBY" 5 "HV_OPERATION" 6 "PRECHARGE" 7 "DISABLE_IMD" 8 "START_PRECHARGE_ATTEMPT" 9 "CLOSE_NEGATIVE_CONTACTOR" 10 "CLOSE_PRECHARGE_CONTACTOR" 11 "PRECHARGE_DELAY" 12 "CLOSE_POSITIVE_CONTACTOR" 13 "OPEN_PRECHARGE_CONTACTOR" 14 "HV_READY" 15 "ABORT_PRECHARGE_ATTEMPT" 16 "AP_OPEN_PRE_POS_CON" 17 "AP_OPEN_NEG_CON" 18 "PRECHARGE_RESTART_DELAY" 19 "SERVICE" 20 "SLEEP" 21 "NORMAL_SHUTDOWN" 22 "NS_OPEN_PRE_POS_CON" 23 "NS_OPEN_NEG_CON" 24 "CONTROLLED_SHUTDOWN" 25 "CS_OPEN_PRE_POS_CON" 26 "CS_OPEN_NEG_CON" 27 "EMERGENCY_SHUTDOWN" 28 "ES_OPEN_PRE_POS_CON" 29 "ES_OPEN_NEG_CON" 30 "FAULTED_STANDBY" ;
 VAL_ 2365522112 hvil_state 0 "ErrorInvalidFrequency" 1 "ErrorInvalidDutyCycle" 2 "ErrorLossOfSignal" 3 "ErrorDutyCycleMismatch" 4 "ErrorFrequencyMismatch" 5 "ErrorSize" 6 "Connected" ;
-VAL_ 2365522112 imd_state 0 "kIdle" 1 "kWaitingForSwitchUpdate1" 2 "kTestCircuit1" 3 "kWaitingForSwitchUpdate2" 4 "kTestCircuit2" 5 "kComputeResults" 6 "kCooldown" ;
 VAL_ 2365522112 imd_test_status 0 "Inactive" 1 "InProgress" ;
 VAL_ 2365522112 negative_contactor_aux_state 0 "kDeasserted" 1 "kAsserted" ;
 VAL_ 2365522112 negative_contactor_state 0 "kInit" 1 "kOpen" 2 "kClosing" 3 "kClosed" 4 "kOpening" 5 "kFault" ;
