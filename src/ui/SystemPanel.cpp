@@ -93,6 +93,7 @@ void SystemPanel::render()
 // Messages (and the signals within them) that this panel monitors.
 static constexpr const char *kWatchedMessages[] = {
     "system_status",
+    "imd_measurements",
     "string_sensors_1",
     "string_ntc_temps_1_6",
     "string_ntc_temps_7_8",
@@ -106,6 +107,8 @@ static constexpr const char *kWatchedMessages[] = {
 
 static constexpr const char *kControlOverviewMessages[] = {
     "system_status",
+    "imd_measurements",
+    "contactor_coil_currnets",
     "string_sensors_1",
     "operational_values_1",
     "operational_values_2",
@@ -204,15 +207,13 @@ void SystemPanel::transmit()
 
 void SystemPanel::renderCommands()
 {
-    ImGui::TextDisabled("BMU  ->  BMS");
-    ImGui::Text("system_commands");
+    ImGui::Text("Commands");
     if (!cmdFound_)
     {
         ImGui::TextColored(
             ImVec4(1, 0.4f, 0.4f, 1), "Message not found in DBC");
         return;
     }
-    ImGui::Text("ID: 0x%08X", cmdId_);
     ImGui::Separator();
 
     constexpr ImGuiTableFlags kCmdTableFlags =
@@ -294,7 +295,7 @@ void SystemPanel::renderStates()
 
     constexpr ImGuiTableFlags kGridTbl = ImGuiTableFlags_SizingStretchSame;
     const float commandH = 230.0f;
-    const float contactorH = 126.0f;
+    const float contactorH = 160.0f;
     const float topSectionH =
         commandH + ImGui::GetStyle().ItemSpacing.y + contactorH;
 
@@ -338,9 +339,6 @@ void SystemPanel::renderStates()
                 ImGuiWindowFlags_NoScrollbar |
                     ImGuiWindowFlags_NoScrollWithMouse))
         {
-            ImGui::Text("Core States");
-            ImGui::Separator();
-
             if (ImGui::BeginTable("##CoreStatesTbl", 3, kTbl))
             {
                 ImGui::TableSetupColumn(
@@ -353,7 +351,7 @@ void SystemPanel::renderStates()
 
                 row("hsm_state", "hsm_state");
                 row("hvil_state", "hvil_state");
-                row("imd_state", "imd_state");
+                row("imd_active", "imd_active");
                 row("imd_test_status", "imd_test_status");
 
                 {
@@ -464,6 +462,7 @@ void SystemPanel::renderContactorBox()
         const char *title;
         const char *stateSig;
         const char *auxSig;
+        const char *coilCurrentSig;
         const bool *commanded;
     };
 
@@ -471,14 +470,17 @@ void SystemPanel::renderContactorBox()
         {"Positive",
          "positive_contactor_state",
          "positive_contactor_aux_state",
+         "pos_con_coil_current",
          &positiveContactorCommanded_},
         {"Negative",
          "negative_contactor_state",
          "negative_contactor_aux_state",
+         "neg_con_coil_current",
          &negativeContactorCommanded_},
         {"Precharge",
          "precharge_contactor_state",
          "precharge_contactor_aux_state",
+         "pre_con_coil_current",
          &prechargeContactorCommanded_},
     };
 
@@ -493,14 +495,21 @@ void SystemPanel::renderContactorBox()
 
         char tileId[48];
         std::snprintf(tileId, sizeof(tileId), "##contactor_%d", i);
-        ImGui::BeginChild(tileId, ImVec2(0.0f, 70.0f), true);
+        ImGui::BeginChild(
+            tileId,
+            ImVec2(0.0f, 84.0f),
+            true,
+            ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
 
         auto stIt = liveVals_.find(s.stateSig);
         auto auxIt = liveVals_.find(s.auxSig);
+        auto coilIt = liveVals_.find(s.coilCurrentSig);
         const bool hasState =
             (stIt != liveVals_.end() && stIt->second.received);
         const bool hasAux =
             (auxIt != liveVals_.end() && auxIt->second.received);
+        const bool hasCoil =
+            (coilIt != liveVals_.end() && coilIt->second.received);
 
         const bool cmdOn = hasContactorCommandState_ ? *s.commanded : false;
         const bool auxOn = hasAux && auxIt->second.value > 0.5;
@@ -542,18 +551,36 @@ void SystemPanel::renderContactorBox()
         if (!stateLabel)
             stateLabel = hasState ? "Unknown" : "N/A";
 
-        const ImVec2 txtSize = ImGui::CalcTextSize(stateLabel);
+        char coilText[32];
+        if (hasCoil)
+            std::snprintf(
+                coilText, sizeof(coilText), "%.3f A", coilIt->second.value);
+        else
+            std::snprintf(coilText, sizeof(coilText), "N/A");
+
+        const ImVec2 stateSize = ImGui::CalcTextSize(stateLabel);
+        const ImVec2 coilSize = ImGui::CalcTextSize(coilText);
+        const float stackedH =
+            stateSize.y + ImGui::GetStyle().ItemSpacing.y + coilSize.y;
         const ImVec2 avail = ImGui::GetContentRegionAvail();
-        if (avail.y > txtSize.y)
+        if (avail.y > stackedH)
             ImGui::SetCursorPosY(
-                ImGui::GetCursorPosY() + (avail.y - txtSize.y) * 0.5f);
-        if (avail.x > txtSize.x)
+                ImGui::GetCursorPosY() + (avail.y - stackedH) * 0.5f);
+        if (avail.x > stateSize.x)
             ImGui::SetCursorPosX(
-                ImGui::GetCursorPosX() + (avail.x - txtSize.x) * 0.5f);
+                ImGui::GetCursorPosX() + (avail.x - stateSize.x) * 0.5f);
         if (hasState)
             ImGui::TextUnformatted(stateLabel);
         else
             ImGui::TextDisabled("%s", stateLabel);
+
+        if (avail.x > coilSize.x)
+            ImGui::SetCursorPosX(
+                ImGui::GetCursorPosX() + (avail.x - coilSize.x) * 0.5f);
+        if (hasCoil)
+            ImGui::Text("%s", coilText);
+        else
+            ImGui::TextDisabled("%s", coilText);
 
         ImGui::EndChild();
     }
